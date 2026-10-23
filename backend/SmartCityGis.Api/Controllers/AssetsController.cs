@@ -48,8 +48,7 @@ public class AssetsController : ControllerBase
             Category = request.Category,
             Status = request.Status,
             Neighborhood = request.Neighborhood,
-            Latitude = request.Latitude,
-            Longitude = request.Longitude,
+            Location = Geo.Point(request.Latitude, request.Longitude),
             Description = request.Description
         };
 
@@ -72,8 +71,7 @@ public class AssetsController : ControllerBase
         asset.Category = request.Category;
         asset.Status = request.Status;
         asset.Neighborhood = request.Neighborhood;
-        asset.Latitude = request.Latitude;
-        asset.Longitude = request.Longitude;
+        asset.Location = Geo.Point(request.Latitude, request.Longitude);
         asset.Description = request.Description;
 
         await _db.SaveChangesAsync();

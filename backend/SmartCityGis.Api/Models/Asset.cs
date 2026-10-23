@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using NetTopologySuite.Geometries;
+
 namespace SmartCityGis.Api.Models;
 
 public class Asset
@@ -12,9 +15,16 @@ public class Asset
 
     public required string Neighborhood { get; set; }
 
-    public double Latitude { get; set; }
+    // Veritabanında PostGIS geometry(Point, 4326) olarak saklanır.
+    // JSON'a doğrudan yazılmaz; API eskisi gibi latitude/longitude döndürür.
+    [JsonIgnore]
+    public Point Location { get; set; } = null!;
 
-    public double Longitude { get; set; }
+    // Veritabanında sütun değil, Location'dan türetilen salt okunur değerler.
+    // PostGIS/GeoJSON sırası (X = boylam, Y = enlem).
+    public double Latitude => Location.Y;
+
+    public double Longitude => Location.X;
 
     public string? Description { get; set; }
 
