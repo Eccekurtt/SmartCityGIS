@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartCityGis.Api.Data;
@@ -24,6 +25,49 @@ public class AssetsController : ControllerBase
     {
         var assets = await _db.Assets.AsNoTracking().OrderBy(a => a.Id).ToListAsync();
         return Ok(assets);
+    }
+
+    // GET /api/assets/nearby?lat=39.92&lon=32.85&radius=1000&category=StreetLight
+    // Verilen noktanın radius (metre) yakınındaki varlıkları, en yakından uzağa doğru döndürür.
+    [HttpGet("nearby")]
+    public async Task<ActionResult<IEnumerable<NearbyAssetResponse>>> GetNearby(
+        [Range(-90, 90)] double lat,
+        [Range(-180, 180)] double lon,
+        [Range(1, 50000)] double radius = 1000,
+        AssetCategory? category = null)
+    {
+        var origin = Geo.Point(lat, lon);
+
+        var query = _db.Assets.AsNoTracking()
+            .Where(a => EF.Functions.IsWithinDistance(a.Location, origin, radius, true));
+
+        if (category is not null)
+        {
+            query = query.Where(a => a.Category == category);
+        }
+
+        var rows = await query
+            .Select(a => new
+            {
+                Asset = a,
+                Distance = EF.Functions.Distance(a.Location, origin, true)
+            })
+            .OrderBy(x => x.Distance)
+            .ToListAsync();
+
+        var result = rows.Select(x => new NearbyAssetResponse
+        {
+            Id = x.Asset.Id,
+            Name = x.Asset.Name,
+            Category = x.Asset.Category,
+            Status = x.Asset.Status,
+            Neighborhood = x.Asset.Neighborhood,
+            Latitude = x.Asset.Latitude,
+            Longitude = x.Asset.Longitude,
+            DistanceMeters = Math.Round(x.Distance, 1)
+        });
+
+        return Ok(result);
     }
 
     [HttpGet("{id:int}")]
