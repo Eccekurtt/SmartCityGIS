@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using SmartCityGis.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,12 @@ builder.Services.AddControllers()
     });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection bulunamadı. 'dotnet user-secrets set' ile tanımlayın.");
+
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 var app = builder.Build();
 
