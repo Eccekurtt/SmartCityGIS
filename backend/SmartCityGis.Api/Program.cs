@@ -12,6 +12,7 @@ using SmartCityGis.Api.Data;
 using SmartCityGis.Api.Models;
 using SmartCityGis.Api.Security;
 using SmartCityGis.Api.Services;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,7 +56,18 @@ builder.Services.AddControllers(options =>
         options.JsonSerializerOptions.Converters.Add(new GeoJsonConverterFactory());
     });
 
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Info.Title = "SmartCity GIS API";
+        document.Info.Version = "v1";
+        document.Info.Description =
+            "Belediye varlık yönetim sistemi: PostGIS tabanlı mekânsal sorgular, GeoJSON, bakım, raporlama. " +
+            "Kimlik doğrulama: POST /api/auth/login ile alınan JWT, 'Authorization: Bearer <token>' başlığıyla gönderilir.";
+        return Task.CompletedTask;
+    });
+});
 builder.Services.AddProblemDetails();
 
 // Büyük GeoJSON yanıtlarını (mahalle sınırları vb.) gzip/brotli ile sıkıştır.
@@ -173,12 +185,19 @@ app.UseResponseCompression();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
-if (app.Environment.IsDevelopment())
+// API belgeleri: /openapi/v1.json (şema) ve /scalar (etkileşimli arayüz). Yalnızca geliştirmede veya Api__Docs=true ile.
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue("Api:Docs", false))
 {
     app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference(options => options.WithTitle("SmartCity GIS API")).AllowAnonymous();
 }
 
-app.UseHttpsRedirection();
+// TLS genellikle önündeki proxy'de (nginx, bulut yük dengeleyici) sonlandırılır; uygulama kendisi
+// yönlendirme yapmaz. Doğrudan internete açılıyorsa Https__RedirectEnabled=true ile açılır.
+if (app.Configuration.GetValue("Https:RedirectEnabled", false))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseRateLimiter();
 app.UseAuthentication();

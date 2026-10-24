@@ -308,20 +308,29 @@ export function AssetMap({
               maxZoom={19}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Açık (Carto)">
+          {/* Anahtar gerektirmeyen altlıklar. (CARTO'nun ücretsiz karoları artık API anahtarı istiyor.) */}
+          <LayersControl.BaseLayer name="Açık gri (Esri)">
             <TileLayer
-              attribution='&copy; OpenStreetMap, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-              subdomains="abcd"
-              maxZoom={20}
+              attribution="Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+              maxNativeZoom={16}
+              maxZoom={19}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Koyu (Carto)">
+          <LayersControl.BaseLayer name="Koyu gri (Esri)">
             <TileLayer
-              attribution='&copy; OpenStreetMap, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              subdomains="abcd"
-              maxZoom={20}
+              attribution="Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+              maxNativeZoom={16}
+              maxZoom={19}
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Topografya (OpenTopoMap)">
+            <TileLayer
+              attribution='&copy; OpenStreetMap, SRTM | &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+              url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+              subdomains="abc"
+              maxZoom={17}
             />
           </LayersControl.BaseLayer>
 

@@ -1,14 +1,17 @@
+import { lazy } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { RequireAdmin, RequireAuth } from './components/RequireAuth'
 import { AppLayout } from './layout/AppLayout'
-import { AuditPage } from './pages/AuditPage'
-import { DashboardPage } from './pages/DashboardPage'
-import { DataPage } from './pages/DataPage'
 import { LoginPage } from './pages/LoginPage'
-import { MaintenancePage } from './pages/MaintenancePage'
-import { MapPage } from './pages/MapPage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { UsersPage } from './pages/UsersPage'
+
+// Ağır kütüphaneler (Leaflet, Recharts) yalnızca ilgili sayfa açılınca yüklenir (kod bölme).
+const MapPage = lazy(() => import('./pages/MapPage').then((m) => ({ default: m.MapPage })))
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const MaintenancePage = lazy(() => import('./pages/MaintenancePage').then((m) => ({ default: m.MaintenancePage })))
+const DataPage = lazy(() => import('./pages/DataPage').then((m) => ({ default: m.DataPage })))
+const UsersPage = lazy(() => import('./pages/UsersPage').then((m) => ({ default: m.UsersPage })))
+const AuditPage = lazy(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })))
 
 function App() {
   return (

@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/SmartCityGis.Api/SmartCityGis.Api.csproj" />
+    <Project Path="backend/SmartCityGis.Tests/SmartCityGis.Tests.csproj" />
+  </Folder>
+</Solution>
