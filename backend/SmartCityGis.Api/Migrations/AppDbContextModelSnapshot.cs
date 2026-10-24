@@ -50,6 +50,10 @@ namespace SmartCityGis.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
                     b.Property<Geometry>("Geometry")
                         .IsRequired()
                         .HasColumnType("geometry(Geometry, 4326)");
@@ -92,6 +96,13 @@ namespace SmartCityGis.Api.Migrations
                         .HasColumnType("text")
                         .HasComputedColumnSql("lower(translate(coalesce(\"Name\", '') || ' ' || coalesce(\"Neighborhood\", ''), 'ÇĞİIıÖŞÜçğöşü', 'cgiiiosucgosu'))", true);
 
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("manual");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -103,6 +114,10 @@ namespace SmartCityGis.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Category");
+
+                    b.HasIndex("ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalId\" IS NOT NULL");
 
                     b.HasIndex("Geometry");
 
@@ -118,6 +133,60 @@ namespace SmartCityGis.Api.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("Assets");
+                });
+
+            modelBuilder.Entity("SmartCityGis.Api.Models.Neighborhood", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<double>("AreaSquareMeters")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("double precision")
+                        .HasComputedColumnSql("ST_Area(\"Boundary\"::geography)", true);
+
+                    b.Property<Geometry>("Boundary")
+                        .IsRequired()
+                        .HasColumnType("geometry(Geometry, 4326)");
+
+                    b.Property<string>("District")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("manual");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Boundary");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Boundary"), "gist");
+
+                    b.HasIndex("ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalId\" IS NOT NULL");
+
+                    b.HasIndex("District", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Neighborhoods");
                 });
 #pragma warning restore 612, 618
         }

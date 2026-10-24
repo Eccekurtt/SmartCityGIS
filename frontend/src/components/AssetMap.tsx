@@ -7,24 +7,42 @@ import {
   LayerGroup,
   LayersControl,
   MapContainer,
+  Pane,
   Polygon,
   Polyline,
   Popup,
   TileLayer,
   useMap,
+  useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useNeighborhoodGeoJson } from '../hooks/neighborhoods'
 import { categories, categoryColors, categoryLabels, geometryLabels, statusLabels } from '../labels'
+import { classBreaks, legendItems } from '../lib/choropleth'
 import { flip, flipLine, flipPolygon } from '../lib/geo'
 import { formatArea, formatLength } from '../lib/format'
 import type { AssetFeatureCollection, AssetFeatureProps } from '../types'
 import { ExpandIcon } from './icons'
+import { NeighborhoodLayer } from './NeighborhoodLayer'
+
+const HOOD_LAYER_NAME = 'Mahalle yoğunluğu'
+
+// Katman kontrolünden "Mahalle yoğunluğu" açılıp kapanınca haber verir (veri yalnızca açıkken çekilir).
+function OverlayWatcher({ onChange }: { onChange: (on: boolean) => void }) {
+  useMapEvents({
+    overlayadd: (e) => e.name === HOOD_LAYER_NAME && onChange(true),
+    overlayremove: (e) => e.name === HOOD_LAYER_NAME && onChange(false),
+  })
+  return null
+}
 
 interface Props {
   collection: AssetFeatureCollection | undefined
   selectedId: number | null
   onSelect: (id: number) => void
   onOpenDetail: (id: number) => void
+  // Mahalle poligonuna tıklanınca (filtre uygulamak için)
+  onPickNeighborhood?: (name: string) => void
   // Harita içinde çalışan araçlar (yakınımdakiler, ölçüm...) buraya eklenir.
   children?: ReactNode
 }
@@ -214,10 +232,28 @@ function FitController({
   return null
 }
 
-export function AssetMap({ collection, selectedId, onSelect, onOpenDetail, children }: Props) {
+export function AssetMap({
+  collection,
+  selectedId,
+  onSelect,
+  onOpenDetail,
+  onPickNeighborhood,
+  children,
+}: Props) {
   const registry = useRef<Registry>(new Map())
   const [fitSignal, setFitSignal] = useState(0)
   const requestFit = useCallback(() => setFitSignal((n) => n + 1), [])
+
+  const [hoodsOn, setHoodsOn] = useState(false)
+  const hoods = useNeighborhoodGeoJson(hoodsOn)
+  const hoodBreaks = useMemo(
+    () => classBreaks(hoods.data?.features.map((f) => f.properties.assetCount) ?? []),
+    [hoods.data],
+  )
+  const hoodLegend = useMemo(
+    () => legendItems(hoodBreaks, Math.max(0, ...(hoods.data?.features.map((f) => f.properties.assetCount) ?? []))),
+    [hoodBreaks, hoods.data],
+  )
 
   const byCategory = useMemo(() => {
     const groups = new Map<string, AssetFeatureCollection['features']>()
@@ -266,6 +302,14 @@ export function AssetMap({ collection, selectedId, onSelect, onOpenDetail, child
             />
           </LayersControl.BaseLayer>
 
+          <LayersControl.Overlay name={HOOD_LAYER_NAME}>
+            <LayerGroup>
+              {hoodsOn && hoods.data && (
+                <NeighborhoodLayer collection={hoods.data} breaks={hoodBreaks} onPick={onPickNeighborhood} />
+              )}
+            </LayerGroup>
+          </LayersControl.Overlay>
+
           {categories.map((category) => (
             <LayersControl.Overlay key={category} checked name={categoryLabels[category]}>
               <LayerGroup>
@@ -284,6 +328,10 @@ export function AssetMap({ collection, selectedId, onSelect, onOpenDetail, child
           ))}
         </LayersControl>
 
+        {/* Mahalle katmanı varlıkların altında kalsın diye özel bir pane (z-index 350 < 400). */}
+        <Pane name="neighborhoods" style={{ zIndex: 350 }} />
+        <OverlayWatcher onChange={setHoodsOn} />
+
         <FitController collection={collection} fitSignal={fitSignal} />
         <SelectionController collection={collection} selectedId={selectedId} registry={registry} />
         {children}
@@ -293,6 +341,20 @@ export function AssetMap({ collection, selectedId, onSelect, onOpenDetail, child
         <ExpandIcon size={16} />
         Tümünü göster
       </button>
+
+      {hoodsOn && (
+        <div className="choropleth-legend" aria-label="Mahalle yoğunluğu lejantı">
+          <strong>Mahalledeki varlık sayısı</strong>
+          {hoods.isFetching && !hoods.data && <span>yükleniyor…</span>}
+          {hoodLegend.map((item) => (
+            <span key={item.label} className="choropleth-item">
+              <i style={{ background: item.color }} />
+              {item.label}
+            </span>
+          ))}
+          <span className="choropleth-hint">Mahalleye tıklayarak filtreleyin</span>
+        </div>
+      )}
 
       <ul className="legend">
         {categories.map((category) => (

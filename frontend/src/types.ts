@@ -109,3 +109,30 @@ export interface NearbyAsset {
   longitude: number
   distanceMeters: number
 }
+
+export interface NeighborhoodFeatureProps {
+  id: number
+  name: string
+  district: string
+  areaKm2: number
+  assetCount: number
+  maintenanceCount: number
+  assetsPerKm2: number
+}
+
+export type NeighborhoodFeatureCollection = FeatureCollection<Geometry, NeighborhoodFeatureProps>
+
+export interface NeighborhoodStats {
+  id: number
+  name: string
+  district: string
+  areaKm2: number
+  assetCount: number
+  maintenanceCount: number
+  assetsPerKm2: number
+}
+
+export interface NeighborhoodAt {
+  name: string
+  district: string
+}

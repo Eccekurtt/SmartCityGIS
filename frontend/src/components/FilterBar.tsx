@@ -43,7 +43,11 @@ export function FilterBar({ filters, onChange, total, neighborhoods }: Props) {
           }}
         >
           <option value="">Tüm mahalleler</option>
-          {neighborhoods.map((name) => (
+          {/* Haritadan seçilen mahalle, varlığı olmasa bile listede görünsün. */}
+          {(filters.neighborhood && !neighborhoods.includes(filters.neighborhood)
+            ? [...neighborhoods, filters.neighborhood]
+            : neighborhoods
+          ).map((name) => (
             <option key={name} value={name}>
               {name}
             </option>

@@ -24,6 +24,12 @@ public class Asset
 
     public DateTime? UpdatedAt { get; set; }
 
+    // Verinin kaynağı: "manual" (arayüzden), "osm" (OpenStreetMap), "geojson" (dosya içe aktarma).
+    public string Source { get; set; } = "manual";
+
+    // Dış sistemdeki kimliği (örn. "osm:way/12345"). Aynı kaydı iki kez içe aktarmamak için benzersizdir.
+    public string? ExternalId { get; set; }
+
     // ---- Aşağıdakiler PostgreSQL'in ürettiği (generated, stored) sütunlardır. ----
     // Geometry değişince veritabanı bunları kendisi yeniden hesaplar; uygulama yazmaz.
 

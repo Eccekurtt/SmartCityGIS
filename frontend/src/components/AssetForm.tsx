@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Geometry } from 'geojson'
 import { ApiError } from '../api/client'
+import { useDebounce } from '../hooks/useDebounce'
+import { useNeighborhoodAt } from '../hooks/neighborhoods'
+import { geometryBounds } from '../lib/geo'
 import { categories, categoryLabels, statuses, statusLabels } from '../labels'
 import type { Asset, AssetCategory, AssetInput, AssetStatus } from '../types'
 import { GeometryEditor } from './GeometryEditor'
@@ -21,6 +24,17 @@ export function AssetForm({ asset, onSubmit, onCancel }: Props) {
   const [geometry, setGeometry] = useState<Geometry | null>(asset?.geometry ?? null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Çizilen geometrinin merkezinden mahalleyi sor (çizim durulunca; her fare hareketinde değil).
+  const center = useDebounce(
+    useMemo(() => {
+      if (!geometry) return null
+      const c = geometryBounds(geometry).getCenter()
+      return { lat: Number(c.lat.toFixed(5)), lon: Number(c.lng.toFixed(5)) }
+    }, [geometry]),
+    500,
+  )
+  const detected = useNeighborhoodAt(center?.lat ?? null, center?.lon ?? null)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -79,8 +93,22 @@ export function AssetForm({ asset, onSubmit, onCancel }: Props) {
       </div>
 
       <label>
-        Mahalle
-        <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} maxLength={100} required />
+        Mahalle (isteğe bağlı)
+        <input
+          value={neighborhood}
+          onChange={(e) => setNeighborhood(e.target.value)}
+          maxLength={100}
+          placeholder="Boş bırakırsanız konumdan otomatik belirlenir"
+        />
+        <span className="field-hint">
+          {geometry
+            ? detected.isFetching
+              ? 'Konumdaki mahalle aranıyor…'
+              : detected.data
+                ? `Konuma göre mahalle: ${detected.data.name} (${detected.data.district})`
+                : 'Bu konum bilinen bir mahalle sınırının dışında.'
+            : 'Önce haritada bir konum çizin.'}
+        </span>
       </label>
 
       <div className="field">

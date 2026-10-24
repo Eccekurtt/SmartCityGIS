@@ -1,21 +1,64 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Features;
+using NetTopologySuite.IO.Converters;
 using SmartCityGis.Api.Models;
+using SmartCityGis.Api.Services;
 
 namespace SmartCityGis.Api.Data;
 
-// Geliştirme ortamında tablo boşsa örnek veri yükler.
-// Koordinatlar Ankara için yaklaşık değerlerdir, gerçek envanter değildir.
-// Gerçek veri için OpenStreetMap içe aktarma özelliğini kullanın.
+// Geliştirme ortamında tablolar boşsa örnek veri yükler.
+// - Mahalle sınırları: SeedData/neighborhoods.geojson (OpenStreetMap, ODbL; Ankara'nın 9 merkez ilçesi)
+// - Varlıklar: elle hazırlanmış yaklaşık koordinatlı örnekler. Gerçek veri için OSM içe aktarmayı kullanın.
 public static class DbSeeder
 {
-    public static async Task SeedAsync(AppDbContext db)
+    public static async Task SeedAsync(AppDbContext db, NeighborhoodLocator locator, string contentRoot)
+    {
+        await SeedNeighborhoodsAsync(db, Path.Combine(contentRoot, "SeedData", "neighborhoods.geojson"));
+        await SeedAssetsAsync(db, locator);
+    }
+
+    private static async Task SeedNeighborhoodsAsync(AppDbContext db, string path)
+    {
+        if (await db.Neighborhoods.AnyAsync() || !File.Exists(path))
+        {
+            return;
+        }
+
+        var options = new JsonSerializerOptions();
+        options.Converters.Add(new GeoJsonConverterFactory());
+
+        await using var stream = File.OpenRead(path);
+        var collection = await JsonSerializer.DeserializeAsync<FeatureCollection>(stream, options);
+
+        foreach (var feature in collection ?? [])
+        {
+            var boundary = feature.Geometry;
+            boundary.SRID = Geo.Wgs84;
+
+            db.Neighborhoods.Add(new Neighborhood
+            {
+                Name = (string)feature.Attributes["name"],
+                District = (string)feature.Attributes["district"],
+                ExternalId = feature.Attributes["externalId"] as string,
+                Source = "osm",
+                Boundary = boundary
+            });
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedAssetsAsync(AppDbContext db, NeighborhoodLocator locator)
     {
         if (await db.Assets.AnyAsync())
         {
             return;
         }
 
-        db.Assets.AddRange(
+        var assets = new List<Asset>();
+        assets.AddRange(new[]
+        {
             // ---- Parklar (alan) ----
             new Asset
             {
@@ -132,8 +175,19 @@ public static class DbSeeder
                 Status = AssetStatus.UnderMaintenance,
                 Geometry = Geo.Line((32.8570, 39.9000), (32.8650, 39.8990), (32.8730, 39.8975))
             }
-        );
+        });
 
+        // Elle yazılmış mahalle adları yerine konumdan (mahalle sınırlarıyla) gerçek mahalleyi bul.
+        // Sınır verisi yoksa yazılan ad olduğu gibi kalır.
+        if (await db.Neighborhoods.AnyAsync())
+        {
+            foreach (var asset in assets)
+            {
+                asset.Neighborhood = await locator.FindNameAsync(asset.Geometry);
+            }
+        }
+
+        db.Assets.AddRange(assets);
         await db.SaveChangesAsync();
     }
 }

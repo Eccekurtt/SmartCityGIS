@@ -6,12 +6,13 @@ using SmartCityGis.Api.Common;
 using SmartCityGis.Api.Data;
 using SmartCityGis.Api.Dtos;
 using SmartCityGis.Api.Models;
+using SmartCityGis.Api.Services;
 
 namespace SmartCityGis.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AssetsController(AppDbContext db) : ControllerBase
+public class AssetsController(AppDbContext db, NeighborhoodLocator locator) : ControllerBase
 {
     // Harita tek istekte bu kadar özelliğe kadar alır; fazlası için bbox ile daraltılır.
     private const int GeoJsonLimit = 5000;
@@ -131,7 +132,7 @@ public class AssetsController(AppDbContext db) : ControllerBase
             Name = request.Name.Trim(),
             Category = request.Category,
             Status = request.Status,
-            Neighborhood = request.Neighborhood.Trim(),
+            Neighborhood = await ResolveNeighborhoodAsync(request, ct),
             Geometry = request.Geometry,
             Description = request.Description
         };
@@ -156,7 +157,7 @@ public class AssetsController(AppDbContext db) : ControllerBase
         asset.Name = request.Name.Trim();
         asset.Category = request.Category;
         asset.Status = request.Status;
-        asset.Neighborhood = request.Neighborhood.Trim();
+        asset.Neighborhood = await ResolveNeighborhoodAsync(request, ct);
         asset.Geometry = request.Geometry;
         asset.Description = request.Description;
         asset.UpdatedAt = DateTime.UtcNow;
@@ -165,6 +166,12 @@ public class AssetsController(AppDbContext db) : ControllerBase
 
         return Ok(asset);
     }
+
+    // Kullanıcı mahalle yazdıysa onu kullanır; boşsa konumdan mekânsal olarak bulur.
+    private async Task<string> ResolveNeighborhoodAsync(AssetRequest request, CancellationToken ct) =>
+        string.IsNullOrWhiteSpace(request.Neighborhood)
+            ? await locator.FindNameAsync(request.Geometry!, ct)
+            : request.Neighborhood.Trim();
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)

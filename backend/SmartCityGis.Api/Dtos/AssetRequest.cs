@@ -16,8 +16,9 @@ public class AssetRequest : IValidatableObject
     [EnumDataType(typeof(AssetStatus), ErrorMessage = "Geçersiz durum.")]
     public AssetStatus Status { get; set; } = AssetStatus.Active;
 
-    [Required(ErrorMessage = "Mahalle zorunludur."), StringLength(100, ErrorMessage = "Mahalle en fazla 100 karakter olabilir.")]
-    public string Neighborhood { get; set; } = "";
+    // Boş bırakılırsa konumdan (mahalle sınırlarıyla mekânsal sorgu) otomatik belirlenir.
+    [StringLength(100, ErrorMessage = "Mahalle en fazla 100 karakter olabilir.")]
+    public string? Neighborhood { get; set; }
 
     // GeoJSON geometri nesnesi: { "type": "Polygon", "coordinates": [...] }
     public Geometry? Geometry { get; set; }

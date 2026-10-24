@@ -11,6 +11,8 @@ public class AppDbContext : DbContext
 
     public DbSet<Asset> Assets => Set<Asset>();
 
+    public DbSet<Neighborhood> Neighborhoods => Set<Neighborhood>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("postgis");
@@ -58,6 +60,27 @@ public class AppDbContext : DbContext
             entity.HasIndex(a => a.Category);
             entity.HasIndex(a => a.Status);
             entity.HasIndex(a => a.Neighborhood);
+
+            entity.Property(a => a.Source).HasMaxLength(20).HasDefaultValue("manual");
+            entity.Property(a => a.ExternalId).HasMaxLength(60);
+            // Aynı dış kaynaktan gelen kayıt iki kez eklenemez (NULL olanlar muaf).
+            entity.HasIndex(a => a.ExternalId).IsUnique().HasFilter("\"ExternalId\" IS NOT NULL");
+        });
+
+        modelBuilder.Entity<Neighborhood>(entity =>
+        {
+            entity.Property(n => n.Name).HasMaxLength(100);
+            entity.Property(n => n.District).HasMaxLength(100);
+            entity.Property(n => n.Source).HasMaxLength(20).HasDefaultValue("manual");
+            entity.Property(n => n.ExternalId).HasMaxLength(60);
+
+            entity.Property(n => n.Boundary).HasColumnType("geometry(Geometry, 4326)");
+            entity.Property(n => n.AreaSquareMeters)
+                .HasComputedColumnSql("ST_Area(\"Boundary\"::geography)", stored: true);
+
+            entity.HasIndex(n => n.Boundary).HasMethod("gist");
+            entity.HasIndex(n => new { n.District, n.Name }).IsUnique();
+            entity.HasIndex(n => n.ExternalId).IsUnique().HasFilter("\"ExternalId\" IS NOT NULL");
         });
     }
 }

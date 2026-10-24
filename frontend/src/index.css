@@ -926,6 +926,46 @@ tbody tr:last-child td {
   cursor: grab;
 }
 
+.field-hint {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* ---------- Koroplet lejantı ---------- */
+.choropleth-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 54px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 0.78rem;
+}
+
+.choropleth-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.choropleth-item i {
+  width: 22px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.choropleth-hint {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
 /* ---------- Ayrıntı paneli ---------- */
 .detail h3 {
   margin: 0 0 8px;

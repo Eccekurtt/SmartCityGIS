@@ -132,6 +132,7 @@ function App() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onOpenDetail={setDetailId}
+            onPickNeighborhood={(name) => changeFilters((f) => ({ ...f, neighborhood: name }))}
           />
         </section>
 

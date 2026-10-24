@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.IO.Converters;
 using SmartCityGis.Api.Data;
+using SmartCityGis.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,12 +52,30 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddProblemDetails();
 
+// Büyük GeoJSON yanıtlarını (mahalle sınırları vb.) gzip/brotli ile sıkıştır.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.MimeTypes = Microsoft.AspNetCore.ResponseCompression.ResponseCompressionDefaults.MimeTypes
+        .Concat(["application/geo+json", "application/problem+json"]);
+});
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
         "ConnectionStrings:DefaultConnection bulunamadı. 'dotnet user-secrets set' ile tanımlayın.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql => npgsql.UseNetTopologySuite()));
+
+builder.Services.AddScoped<NeighborhoodLocator>();
+
+// OpenStreetMap Overpass API istemcisi. Kullanım politikası gereği tanımlayıcı bir User-Agent gerekir.
+builder.Services.AddHttpClient<OsmImporter>(client =>
+{
+    client.BaseAddress = new Uri("https://overpass-api.de/");
+    client.Timeout = TimeSpan.FromMinutes(4);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("SmartCityGIS/1.0 (portfolio project; contact via GitHub)");
+});
 
 var app = builder.Build();
 
@@ -66,8 +85,11 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(db);
+    var locator = scope.ServiceProvider.GetRequiredService<NeighborhoodLocator>();
+    await DbSeeder.SeedAsync(db, locator, app.Environment.ContentRootPath);
 }
+
+app.UseResponseCompression();
 
 // Beklenmeyen hataları (500) ProblemDetails olarak döndür, ayrıntıyı sızdırma.
 app.UseExceptionHandler();
