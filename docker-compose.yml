@@ -1,0 +1,60 @@
+# SmartCity GIS: tek komutla çalıştır
+#
+#   docker compose up --build
+#   -> http://localhost:8080
+#
+# Üç servis: db (PostgreSQL + PostGIS), api (ASP.NET Core), web (nginx + React derlemesi).
+# Parolaları ve JWT anahtarını .env dosyasıyla değiştirin (bkz. .env.example). Aşağıdaki varsayılanlar
+# yalnızca yerel demo içindir.
+
+name: smartcity-gis
+
+services:
+  db:
+    image: postgis/postgis:18-3.6
+    environment:
+      POSTGRES_DB: smartcity_gis
+      POSTGRES_USER: smartcity
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-smartcity-demo-parolasi}
+    volumes:
+      # PostgreSQL 18 imajı veri klasörünü /var/lib/postgresql altında sürüme göre açar.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartcity -d smartcity_gis"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    # Veritabanı portu dışarıya açılmaz: yalnızca api servisi erişir.
+
+  api:
+    build: ./backend/SmartCityGis.Api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=smartcity_gis;Username=smartcity;Password=${DB_PASSWORD:-smartcity-demo-parolasi}
+      Jwt__Key: ${JWT_KEY:-yalnizca-yerel-demo-icin-uzun-gizli-anahtar-uretimde-degistirin-9f3a}
+      # Üretimde migration ve tohum veri varsayılan olarak kapalıdır; demo için açıldı.
+      Database__MigrateOnStartup: "true"
+      Database__SeedSampleData: ${SEED_SAMPLE_DATA:-true}
+      # Demo kullanıcıları (admin / operator / izleyici) yalnızca bu bayrakla oluşturulur.
+      Seed__DemoUsers: ${SEED_DEMO_USERS:-true}
+      # nginx arkasında gerçek istemci IP'sini (X-Forwarded-For) kullan.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_SHOW_DEMO: ${SHOW_DEMO_ACCOUNTS:-true}
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
