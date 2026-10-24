@@ -21,6 +21,7 @@ namespace SmartCityGis.Api.Migrations
                 .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
@@ -31,6 +32,11 @@ namespace SmartCityGis.Api.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<double?>("AreaSquareMeters")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("double precision")
+                        .HasComputedColumnSql("CASE WHEN ST_GeometryType(\"Geometry\") IN ('ST_Polygon', 'ST_MultiPolygon') THEN ST_Area(\"Geometry\"::geography) END", true);
 
                     b.Property<string>("Category")
                         .IsRequired()
@@ -44,9 +50,31 @@ namespace SmartCityGis.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Point>("Location")
+                    b.Property<Geometry>("Geometry")
                         .IsRequired()
-                        .HasColumnType("geometry(Point, 4326)");
+                        .HasColumnType("geometry(Geometry, 4326)");
+
+                    b.Property<string>("GeometryType")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasComputedColumnSql("replace(ST_GeometryType(\"Geometry\"), 'ST_', '')", true);
+
+                    b.Property<double>("Latitude")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("double precision")
+                        .HasComputedColumnSql("ST_Y(ST_PointOnSurface(\"Geometry\"))", true);
+
+                    b.Property<double?>("LengthMeters")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("double precision")
+                        .HasComputedColumnSql("CASE WHEN ST_GeometryType(\"Geometry\") IN ('ST_LineString', 'ST_MultiLineString') THEN ST_Length(\"Geometry\"::geography) END", true);
+
+                    b.Property<double>("Longitude")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("double precision")
+                        .HasComputedColumnSql("ST_X(ST_PointOnSurface(\"Geometry\"))", true);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -58,16 +86,36 @@ namespace SmartCityGis.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("SearchText")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("text")
+                        .HasComputedColumnSql("lower(translate(coalesce(\"Name\", '') || ' ' || coalesce(\"Neighborhood\", ''), 'ÇĞİIıÖŞÜçğöşü', 'cgiiiosucgosu'))", true);
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Location");
+                    b.HasIndex("Category");
 
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Location"), "gist");
+                    b.HasIndex("Geometry");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Geometry"), "gist");
+
+                    b.HasIndex("Neighborhood");
+
+                    b.HasIndex("SearchText");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchText"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchText"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Assets");
                 });

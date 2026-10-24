@@ -1,29 +1,51 @@
-import { useEffect, useRef } from 'react'
-import { categoryColors, categoryLabels, statusLabels } from '../labels'
-import type { Asset } from '../types'
-import { EditIcon, TrashIcon } from './icons'
+import { categoryColors, categoryLabels, geometryLabels, statusLabels } from '../labels'
+import { formatArea, formatLength } from '../lib/format'
+import type { AssetListItem, AssetSort } from '../types'
+import { ArrowDownIcon, ArrowUpIcon, EditIcon, LineIcon, PointIcon, PolygonIcon, TrashIcon } from './icons'
 
 interface Props {
-  assets: Asset[]
+  assets: AssetListItem[]
   loading: boolean
+  fetching: boolean
+  sort: AssetSort
+  onSort: (sort: AssetSort['sort']) => void
   selectedId: number | null
   onSelect: (id: number) => void
-  onEdit: (asset: Asset) => void
-  onDelete: (asset: Asset) => void
+  onOpen: (id: number) => void
+  onEdit: (id: number) => void
+  onDelete: (asset: AssetListItem) => void
+  canEdit: boolean
+  canDelete: boolean
 }
 
-export function AssetTable({ assets, loading, selectedId, onSelect, onEdit, onDelete }: Props) {
-  const selectedRow = useRef<HTMLTableRowElement | null>(null)
+function GeometryBadge({ type }: { type: string }) {
+  const Icon = type.includes('Polygon') ? PolygonIcon : type.includes('Line') ? LineIcon : PointIcon
+  return (
+    <span className="geom-badge" title={geometryLabels[type] ?? type}>
+      <Icon size={14} />
+      {geometryLabels[type] ?? type}
+    </span>
+  )
+}
 
-  // Haritadan bir işaretçi seçilince ilgili satırı görünür alana getir.
-  useEffect(() => {
-    selectedRow.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [selectedId])
-
+export function AssetTable({
+  assets,
+  loading,
+  fetching,
+  sort,
+  onSort,
+  selectedId,
+  onSelect,
+  onOpen,
+  onEdit,
+  onDelete,
+  canEdit,
+  canDelete,
+}: Props) {
   if (loading) {
     return (
       <div className="table-state">
-        {Array.from({ length: 5 }, (_, i) => (
+        {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="skeleton skeleton-row" />
         ))}
       </div>
@@ -39,16 +61,26 @@ export function AssetTable({ assets, loading, selectedId, onSelect, onEdit, onDe
     )
   }
 
+  const header = (key: AssetSort['sort'], label: string) => (
+    <th aria-sort={sort.sort === key ? (sort.desc ? 'descending' : 'ascending') : 'none'}>
+      <button className="sort-btn" onClick={() => onSort(key)}>
+        {label}
+        {sort.sort === key && (sort.desc ? <ArrowDownIcon size={12} /> : <ArrowUpIcon size={12} />)}
+      </button>
+    </th>
+  )
+
   return (
-    <div className="table-scroll">
+    <div className={`table-scroll ${fetching ? 'is-fetching' : ''}`}>
       <table>
         <thead>
           <tr>
-            <th>Varlık</th>
-            <th>Kategori</th>
-            <th>Durum</th>
-            <th>Mahalle</th>
-            <th>Konum</th>
+            {header('name', 'Varlık')}
+            <th>Tür</th>
+            {header('category', 'Kategori')}
+            {header('status', 'Durum')}
+            {header('neighborhood', 'Mahalle')}
+            {header('size', 'Boyut')}
             <th aria-label="İşlemler"></th>
           </tr>
         </thead>
@@ -56,11 +88,14 @@ export function AssetTable({ assets, loading, selectedId, onSelect, onEdit, onDe
           {assets.map((asset) => (
             <tr
               key={asset.id}
-              ref={asset.id === selectedId ? selectedRow : undefined}
               className={asset.id === selectedId ? 'selected' : undefined}
               onClick={() => onSelect(asset.id)}
+              onDoubleClick={() => onOpen(asset.id)}
             >
               <td className="cell-name">{asset.name}</td>
+              <td>
+                <GeometryBadge type={asset.geometryType} />
+              </td>
               <td>
                 <span className="chip">
                   <span className="dot" style={{ background: categoryColors[asset.category] }} />
@@ -72,31 +107,50 @@ export function AssetTable({ assets, loading, selectedId, onSelect, onEdit, onDe
               </td>
               <td>{asset.neighborhood}</td>
               <td className="cell-mono">
-                {asset.latitude.toFixed(4)}, {asset.longitude.toFixed(4)}
+                {asset.areaSquareMeters != null
+                  ? formatArea(asset.areaSquareMeters)
+                  : asset.lengthMeters != null
+                    ? formatLength(asset.lengthMeters)
+                    : '—'}
               </td>
               <td className="cell-actions">
                 <button
                   className="icon-btn"
-                  aria-label={`${asset.name} düzenle`}
-                  title="Düzenle"
-                  onClick={(e) => {
-                    e.stopPropagation() // satır tıklamasını (seçimi) tetiklemesin
-                    onEdit(asset)
-                  }}
-                >
-                  <EditIcon size={16} />
-                </button>
-                <button
-                  className="icon-btn danger"
-                  aria-label={`${asset.name} sil`}
-                  title="Sil"
+                  aria-label={`${asset.name} ayrıntıları`}
+                  title="Ayrıntılar"
                   onClick={(e) => {
                     e.stopPropagation()
-                    onDelete(asset)
+                    onOpen(asset.id)
                   }}
                 >
-                  <TrashIcon size={16} />
+                  <PointIcon size={16} />
                 </button>
+                {canEdit && (
+                  <button
+                    className="icon-btn"
+                    aria-label={`${asset.name} düzenle`}
+                    title="Düzenle"
+                    onClick={(e) => {
+                      e.stopPropagation() // satır tıklamasını (seçimi) tetiklemesin
+                      onEdit(asset.id)
+                    }}
+                  >
+                    <EditIcon size={16} />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    className="icon-btn danger"
+                    aria-label={`${asset.name} sil`}
+                    title="Sil"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDelete(asset)
+                    }}
+                  >
+                    <TrashIcon size={16} />
+                  </button>
+                )}
               </td>
             </tr>
           ))}

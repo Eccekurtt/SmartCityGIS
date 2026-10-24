@@ -656,6 +656,328 @@ tbody tr:last-child td {
   color: var(--muted);
 }
 
+/* ---------- Filtre çubuğu ---------- */
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.chips-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.chips-label.spaced {
+  margin-left: 14px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.filter-chip:hover {
+  background: var(--surface-2);
+}
+
+.filter-chip.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 600;
+}
+
+.filter-chip .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* ---------- Harita üstü ---------- */
+.map-wrapper {
+  position: relative;
+}
+
+.map-fit {
+  position: absolute;
+  left: 12px;
+  bottom: 54px;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.map-fit:hover {
+  background: var(--surface-2);
+}
+
+.popup {
+  min-width: 170px;
+  line-height: 1.45;
+  color: #0f172a;
+}
+
+.popup-meta {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.popup-link {
+  margin-top: 8px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ---------- Tablo eklentileri ---------- */
+.geom-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sort-btn:hover {
+  color: var(--text);
+}
+
+.table-scroll.is-fetching {
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---------- Modal çeşitleri ---------- */
+.modal-wide {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+}
+
+.modal-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: auto;
+  width: min(440px, 100vw);
+  height: 100vh;
+  max-height: none;
+  margin: 0;
+  border-radius: 14px 0 0 14px;
+  animation: drawer-in 0.2s ease-out;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+.form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ---------- Geometri düzenleyici ---------- */
+.geo-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.geo-spacer {
+  flex: 1;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.tool.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.tool.finish:not(:disabled) {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.tool.danger {
+  color: var(--danger);
+}
+
+.tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.editor-map {
+  height: 300px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 0;
+}
+
+.geo-status {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.vertex-handle {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #2563eb;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: grab;
+}
+
+/* ---------- Ayrıntı paneli ---------- */
+.detail h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.detail-tags {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-description {
+  margin: 14px 0 0;
+  color: var(--muted);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+  margin: 20px 0;
+}
+
+.facts dt {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-weight: 500;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn.danger-outline {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn.danger-outline:hover:not(:disabled) {
+  background: var(--danger-soft);
+}
+
 /* ---------- Mobil ---------- */
 @media (max-width: 900px) {
   .stats {

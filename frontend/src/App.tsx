@@ -1,105 +1,90 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createAsset, deleteAsset, getAssets, updateAsset } from './api'
-import { AssetForm } from './components/AssetForm'
+import { useCallback, useMemo, useState } from 'react'
+import { AssetDetail } from './components/AssetDetail'
+import { AssetFormModal } from './components/AssetFormModal'
 import { AssetMap } from './components/AssetMap'
 import { AssetTable } from './components/AssetTable'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { FilterBar } from './components/FilterBar'
 import { Header } from './components/Header'
-import { SearchIcon } from './components/icons'
-import { Modal } from './components/Modal'
+import { Pagination } from './components/Pagination'
 import { StatCards } from './components/StatCards'
 import { Toast } from './components/Toast'
 import type { ToastMessage } from './components/Toast'
-import { categoryLabels, statusLabels } from './labels'
-import type { Asset, AssetCategory, AssetInput, AssetStatus } from './types'
+import {
+  useAssetGeoJson,
+  useAssetList,
+  useCreateAsset,
+  useDeleteAsset,
+  useNeighborhoods,
+  useSummary,
+  useUpdateAsset,
+} from './hooks/assets'
+import { useDebounce } from './hooks/useDebounce'
+import type { AssetFilters, AssetInput, AssetSort } from './types'
 
-// null = form kapalı, 'new' = yeni kayıt, Asset = düzenleme
-type FormState = null | 'new' | Asset
+const PAGE_SIZE = 10
+
+const emptyFilters: AssetFilters = { search: '', categories: [], statuses: [], neighborhood: '' }
+
+// null = form kapalı, 'new' = yeni kayıt, sayı = o varlığı düzenle
+type FormState = null | 'new' | number
 
 function App() {
-  const [assets, setAssets] = useState<Asset[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [filters, setFilters] = useState<AssetFilters>(emptyFilters)
+  const [sort, setSort] = useState<AssetSort>({ sort: 'name', desc: false })
+  const [page, setPage] = useState(1)
 
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState<AssetCategory | ''>('')
-  const [status, setStatus] = useState<AssetStatus | ''>('')
-
-  const [form, setForm] = useState<FormState>(null)
-  const [deleting, setDeleting] = useState<Asset | null>(null)
-  // Harita ve tablo aynı seçimi paylaşır.
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [detailId, setDetailId] = useState<number | null>(null)
+  const [form, setForm] = useState<FormState>(null)
+  const [deleting, setDeleting] = useState<{ id: number; name: string } | null>(null)
   const [toast, setToast] = useState<ToastMessage | null>(null)
 
-  // İlk yükleme.
-  useEffect(() => {
-    const controller = new AbortController()
+  // Her tuşta değil, yazma durulunca sorgula.
+  const debouncedSearch = useDebounce(filters.search, 300)
+  const queryFilters = useMemo(() => ({ ...filters, search: debouncedSearch }), [filters, debouncedSearch])
 
-    getAssets(controller.signal)
-      .then(setAssets)
-      .catch((err: Error) => {
-        if (err.name !== 'AbortError') setError(err.message)
-      })
-      .finally(() => setLoading(false))
+  const list = useAssetList(queryFilters, sort, page, PAGE_SIZE)
+  const geojson = useAssetGeoJson(queryFilters)
+  const summary = useSummary()
+  const neighborhoods = useNeighborhoods()
 
-    // Bileşen kaldırılırsa devam eden isteği iptal et.
-    return () => controller.abort()
-  }, [])
+  const createAsset = useCreateAsset()
+  const updateAsset = useUpdateAsset()
+  const deleteAsset = useDeleteAsset()
 
-  // Ekleme / düzenleme / silme sonrası ve "Tekrar dene" ile listeyi sunucudan yeniden çeker.
-  async function reload() {
-    try {
-      setAssets(await getAssets())
-      setError(null)
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Filtreleme tarayıcıda yapılır; assets / filtreler değişmedikçe yeniden hesaplanmaz.
-  const filtered = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('tr')
-    return assets.filter(
-      (a) =>
-        (term === '' ||
-          a.name.toLocaleLowerCase('tr').includes(term) ||
-          a.neighborhood.toLocaleLowerCase('tr').includes(term)) &&
-        (category === '' || a.category === category) &&
-        (status === '' || a.status === status),
-    )
-  }, [assets, search, category, status])
-
-  const hasFilters = search !== '' || category !== '' || status !== ''
   const dismissToast = useCallback(() => setToast(null), [])
 
-  function clearFilters() {
-    setSearch('')
-    setCategory('')
-    setStatus('')
+  function changeFilters(update: (current: AssetFilters) => AssetFilters) {
+    setFilters(update)
+    setPage(1)
+  }
+
+  function changeSort(key: AssetSort['sort']) {
+    setSort((current) => ({ sort: key, desc: current.sort === key ? !current.desc : false }))
+    setPage(1)
   }
 
   async function handleSubmit(input: AssetInput) {
-    const isEdit = form !== null && form !== 'new'
-    if (isEdit) {
-      await updateAsset(form.id, input)
+    if (typeof form === 'number') {
+      await updateAsset.mutateAsync({ id: form, input })
+      setToast({ type: 'success', text: 'Varlık güncellendi.' })
     } else {
-      await createAsset(input)
+      const created = await createAsset.mutateAsync(input)
+      setSelectedId(created.id)
+      setToast({ type: 'success', text: 'Varlık eklendi.' })
     }
     setForm(null)
-    setToast({ type: 'success', text: isEdit ? 'Varlık güncellendi.' : 'Varlık eklendi.' })
-    await reload()
   }
 
   async function handleDelete() {
     if (!deleting) return
 
     try {
-      await deleteAsset(deleting.id)
+      await deleteAsset.mutateAsync(deleting.id)
       if (selectedId === deleting.id) setSelectedId(null)
+      if (detailId === deleting.id) setDetailId(null)
       setToast({ type: 'success', text: `"${deleting.name}" silindi.` })
-      await reload()
     } catch (err) {
       setToast({ type: 'error', text: (err as Error).message })
     } finally {
@@ -107,98 +92,104 @@ function App() {
     }
   }
 
+  const loadError = list.error ?? geojson.error ?? summary.error
+
   return (
     <>
       <Header onNew={() => setForm('new')} disabled={form !== null} />
 
       <main className="container">
-        <StatCards assets={assets} loading={loading} />
+        <StatCards summary={summary.data} loading={summary.isLoading} />
 
-        {error && (
+        {loadError && (
           <div className="card banner-error" role="alert">
             <div>
-              <strong>Veriler alınamadı.</strong> {error}
+              <strong>Veriler alınamadı.</strong> {loadError.message}
             </div>
-            <button className="btn" onClick={reload}>
+            <button
+              className="btn"
+              onClick={() => {
+                void list.refetch()
+                void geojson.refetch()
+                void summary.refetch()
+              }}
+            >
               Tekrar dene
             </button>
           </div>
         )}
 
-        <section className="card toolbar" aria-label="Arama ve filtreler">
-          <label className="search">
-            <SearchIcon size={16} />
-            <input
-              type="search"
-              placeholder="Ad veya mahalle ara..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
-          <select
-            aria-label="Kategori"
-            value={category}
-            onChange={(e) => setCategory(e.target.value as AssetCategory | '')}
-          >
-            <option value="">Tüm kategoriler</option>
-            {Object.entries(categoryLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Durum"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as AssetStatus | '')}
-          >
-            <option value="">Tüm durumlar</option>
-            {Object.entries(statusLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          {hasFilters && (
-            <button className="btn ghost" onClick={clearFilters}>
-              Temizle
-            </button>
-          )}
-          <span className="count">
-            <strong>{filtered.length}</strong> / {assets.length} varlık
-          </span>
-        </section>
+        <FilterBar
+          filters={filters}
+          onChange={changeFilters}
+          total={list.data?.total}
+          neighborhoods={neighborhoods.data ?? []}
+        />
 
         <section className="card map-card" aria-label="Harita">
-          <AssetMap assets={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+          <AssetMap
+            collection={geojson.data}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onOpenDetail={setDetailId}
+          />
         </section>
 
         <section className="card table-card" aria-label="Varlık listesi">
           <AssetTable
-            assets={filtered}
-            loading={loading}
+            assets={list.data?.items ?? []}
+            loading={list.isLoading}
+            fetching={list.isFetching}
+            sort={sort}
+            onSort={changeSort}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            onOpen={setDetailId}
             onEdit={setForm}
-            onDelete={setDeleting}
+            onDelete={(asset) => setDeleting({ id: asset.id, name: asset.name })}
+            canEdit
+            canDelete
           />
+          {list.data && (
+            <Pagination
+              page={list.data.page}
+              totalPages={list.data.totalPages}
+              total={list.data.total}
+              pageSize={list.data.pageSize}
+              onPage={setPage}
+            />
+          )}
         </section>
 
         <footer className="footer">
-          SmartCity GIS · ASP.NET Core · PostgreSQL/PostGIS · React · Leaflet · Harita verisi ©
-          OpenStreetMap katkıda bulunanlar
+          SmartCity GIS · ASP.NET Core · PostgreSQL/PostGIS · React · Leaflet · Harita verisi © OpenStreetMap
+          katkıda bulunanlar
         </footer>
       </main>
 
+      {detailId !== null && (
+        <AssetDetail
+          id={detailId}
+          onClose={() => setDetailId(null)}
+          onShowOnMap={(id) => {
+            setSelectedId(id)
+            setDetailId(null)
+          }}
+          onEdit={(id) => {
+            setDetailId(null)
+            setForm(id)
+          }}
+          onDelete={(id, name) => {
+            setDetailId(null)
+            setDeleting({ id, name })
+          }}
+          canEdit
+          canDelete
+        />
+      )}
+
       {form !== null && (
-        <Modal title={form === 'new' ? 'Yeni Varlık' : 'Varlığı Düzenle'} onClose={() => setForm(null)}>
-          <AssetForm
-            key={form === 'new' ? 'new' : form.id}
-            asset={form === 'new' ? null : form}
-            onSubmit={handleSubmit}
-            onCancel={() => setForm(null)}
-          />
-        </Modal>
+        <AssetFormModal editId={form === 'new' ? null : form} onSubmit={handleSubmit} onClose={() => setForm(null)} />
       )}
 
       {deleting && (

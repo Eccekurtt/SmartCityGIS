@@ -21,3 +21,21 @@ export const statusLabels: Record<AssetStatus, string> = {
   UnderMaintenance: 'Bakımda',
   Inactive: 'Pasif',
 }
+
+export const statusColors: Record<AssetStatus, string> = {
+  Active: '#16a34a',
+  UnderMaintenance: '#d97706',
+  Inactive: '#64748b',
+}
+
+// PostGIS ST_GeometryType çıktısı (ST_ öneki atılmış) -> Türkçe ad
+export const geometryLabels: Record<string, string> = {
+  Point: 'Nokta',
+  LineString: 'Çizgi',
+  MultiLineString: 'Çoklu çizgi',
+  Polygon: 'Alan',
+  MultiPolygon: 'Çoklu alan',
+}
+
+export const categories = Object.keys(categoryLabels) as AssetCategory[]
+export const statuses = Object.keys(statusLabels) as AssetStatus[]

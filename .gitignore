@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 node_modules/
 dist/
 .env
+
+# Log dosyaları
+*.log

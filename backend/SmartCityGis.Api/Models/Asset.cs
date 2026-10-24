@@ -15,18 +15,33 @@ public class Asset
 
     public required string Neighborhood { get; set; }
 
-    // Veritabanında PostGIS geometry(Point, 4326) olarak saklanır.
-    // JSON'a doğrudan yazılmaz; API eskisi gibi latitude/longitude döndürür.
-    [JsonIgnore]
-    public Point Location { get; set; } = null!;
-
-    // Veritabanında sütun değil, Location'dan türetilen salt okunur değerler.
-    // PostGIS/GeoJSON sırası (X = boylam, Y = enlem).
-    public double Latitude => Location.Y;
-
-    public double Longitude => Location.X;
+    // PostGIS geometry(Geometry, 4326): nokta, çizgi veya alan. API'de GeoJSON olarak görünür.
+    public Geometry Geometry { get; set; } = null!;
 
     public string? Description { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? UpdatedAt { get; set; }
+
+    // ---- Aşağıdakiler PostgreSQL'in ürettiği (generated, stored) sütunlardır. ----
+    // Geometry değişince veritabanı bunları kendisi yeniden hesaplar; uygulama yazmaz.
+
+    // Geometrinin etiket/merkez noktası (ST_PointOnSurface, alan içinde kalması garanti).
+    public double Latitude { get; private set; }
+
+    public double Longitude { get; private set; }
+
+    // Point, LineString, Polygon, MultiPolygon...
+    public string GeometryType { get; private set; } = "";
+
+    // Yalnızca çizgilerde dolu: jeodezik uzunluk (metre).
+    public double? LengthMeters { get; private set; }
+
+    // Yalnızca alanlarda dolu: jeodezik alan (m²).
+    public double? AreaSquareMeters { get; private set; }
+
+    // Türkçe karakterleri sadeleştirilmiş küçük harfli arama metni (ad + mahalle).
+    [JsonIgnore]
+    public string SearchText { get; private set; } = "";
 }

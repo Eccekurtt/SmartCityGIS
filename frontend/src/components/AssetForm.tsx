@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { categoryLabels, statusLabels } from '../labels'
+import type { Geometry } from 'geojson'
+import { ApiError } from '../api/client'
+import { categories, categoryLabels, statuses, statusLabels } from '../labels'
 import type { Asset, AssetCategory, AssetInput, AssetStatus } from '../types'
+import { GeometryEditor } from './GeometryEditor'
 
 interface Props {
   asset: Asset | null // null = yeni kayıt, dolu = düzenleme
@@ -14,30 +17,32 @@ export function AssetForm({ asset, onSubmit, onCancel }: Props) {
   const [category, setCategory] = useState<AssetCategory>(asset?.category ?? 'Park')
   const [status, setStatus] = useState<AssetStatus>(asset?.status ?? 'Active')
   const [neighborhood, setNeighborhood] = useState(asset?.neighborhood ?? '')
-  // Sayı alanları metin olarak tutulur; gönderirken Number()'a çevrilir.
-  const [latitude, setLatitude] = useState(asset ? String(asset.latitude) : '')
-  const [longitude, setLongitude] = useState(asset ? String(asset.longitude) : '')
   const [description, setDescription] = useState(asset?.description ?? '')
+  const [geometry, setGeometry] = useState<Geometry | null>(asset?.geometry ?? null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
-    setSaving(true)
 
+    if (!geometry) {
+      setError('Lütfen haritada bir konum çizin: nokta, çizgi veya alan seçin.')
+      return
+    }
+
+    setSaving(true)
     try {
       await onSubmit({
         name: name.trim(),
         category,
         status,
         neighborhood: neighborhood.trim(),
-        latitude: Number(latitude),
-        longitude: Number(longitude),
         description: description.trim() === '' ? null : description.trim(),
+        geometry,
       })
     } catch (err) {
-      setError((err as Error).message)
+      setError(err instanceof ApiError ? err.message : 'Kaydedilirken bir hata oluştu.')
       setSaving(false)
     }
   }
@@ -46,16 +51,16 @@ export function AssetForm({ asset, onSubmit, onCancel }: Props) {
     <form className="form" onSubmit={handleSubmit}>
       <label>
         Ad
-        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required />
+        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required autoFocus />
       </label>
 
       <div className="row">
         <label>
           Kategori
           <select value={category} onChange={(e) => setCategory(e.target.value as AssetCategory)}>
-            {Object.entries(categoryLabels).map(([value, label]) => (
+            {categories.map((value) => (
               <option key={value} value={value}>
-                {label}
+                {categoryLabels[value]}
               </option>
             ))}
           </select>
@@ -64,9 +69,9 @@ export function AssetForm({ asset, onSubmit, onCancel }: Props) {
         <label>
           Durum
           <select value={status} onChange={(e) => setStatus(e.target.value as AssetStatus)}>
-            {Object.entries(statusLabels).map(([value, label]) => (
+            {statuses.map((value) => (
               <option key={value} value={value}>
-                {label}
+                {statusLabels[value]}
               </option>
             ))}
           </select>
@@ -75,50 +80,17 @@ export function AssetForm({ asset, onSubmit, onCancel }: Props) {
 
       <label>
         Mahalle
-        <input
-          value={neighborhood}
-          onChange={(e) => setNeighborhood(e.target.value)}
-          maxLength={100}
-          required
-        />
+        <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} maxLength={100} required />
       </label>
 
-      <div className="row">
-        <label>
-          Enlem (-90 / 90)
-          <input
-            type="number"
-            step="any"
-            min={-90}
-            max={90}
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            required
-          />
-        </label>
-
-        <label>
-          Boylam (-180 / 180)
-          <input
-            type="number"
-            step="any"
-            min={-180}
-            max={180}
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            required
-          />
-        </label>
+      <div className="field">
+        <span className="field-label">Konum (haritada çizin)</span>
+        <GeometryEditor value={geometry} onChange={setGeometry} />
       </div>
 
       <label>
         Açıklama (isteğe bağlı)
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          maxLength={500}
-          rows={2}
-        />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} rows={2} />
       </label>
 
       {error && <p className="form-error">{error}</p>}

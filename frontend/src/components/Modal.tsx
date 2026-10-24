@@ -5,12 +5,14 @@ import { XIcon } from './icons'
 interface Props {
   title: string
   onClose: () => void
+  // center: küçük ortalı pencere, wide: geniş form penceresi, drawer: sağdan açılan panel
+  variant?: 'center' | 'wide' | 'drawer'
   children: ReactNode
 }
 
 // Tarayıcının yerleşik <dialog> öğesini kullanır: Esc ile kapanma, odak yönetimi
 // ve arka planı karartma tarayıcı tarafından sağlanır.
-export function Modal({ title, onClose, children }: Props) {
+export function Modal({ title, onClose, variant = 'center', children }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -22,7 +24,7 @@ export function Modal({ title, onClose, children }: Props) {
   return (
     <dialog
       ref={dialog}
-      className="modal"
+      className={`modal modal-${variant}`}
       onClose={onClose}
       // Dialog'un kendisine (yani karartılmış arka plana) tıklanırsa kapat.
       onClick={(e) => {
