@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Features;
@@ -6,6 +7,7 @@ using SmartCityGis.Api.Common;
 using SmartCityGis.Api.Data;
 using SmartCityGis.Api.Dtos;
 using SmartCityGis.Api.Models;
+using SmartCityGis.Api.Security;
 using SmartCityGis.Api.Services;
 
 namespace SmartCityGis.Api.Controllers;
@@ -123,6 +125,7 @@ public class AssetsController(AppDbContext db, NeighborhoodLocator locator) : Co
     }
 
     [HttpPost]
+    [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<Asset>> Create(AssetRequest request, CancellationToken ct)
     {
         request.Geometry!.SRID = Geo.Wgs84;
@@ -144,6 +147,7 @@ public class AssetsController(AppDbContext db, NeighborhoodLocator locator) : Co
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<Asset>> Update(int id, AssetRequest request, CancellationToken ct)
     {
         var asset = await db.Assets.FindAsync([id], ct);
@@ -174,6 +178,7 @@ public class AssetsController(AppDbContext db, NeighborhoodLocator locator) : Co
             : request.Neighborhood.Trim();
 
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var deleted = await db.Assets.Where(a => a.Id == id).ExecuteDeleteAsync(ct);

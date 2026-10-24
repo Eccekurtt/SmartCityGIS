@@ -1,5 +1,5 @@
 import type { AssetFilters, GeoJsonImportReport, ImportResult, OsmKind } from '../types'
-import { jsonBody, request, toQuery } from './client'
+import { authFetch, jsonBody, request, toQuery } from './client'
 
 export function uploadGeoJson(file: File, dryRun: boolean) {
   const form = new FormData()
@@ -19,8 +19,7 @@ export function reassignNeighborhoods() {
   return request<{ updated: number }>('/api/neighborhoods/reassign', { method: 'POST' })
 }
 
-// İndirme bağlantısı: tarayıcı doğrudan indirir (Content-Disposition: attachment).
-export function exportUrl(format: 'geojson' | 'csv', filters: Partial<AssetFilters> = {}) {
+function exportUrl(format: 'geojson' | 'csv', filters: Partial<AssetFilters>) {
   const query = toQuery({
     search: filters.search?.trim(),
     category: filters.categories,
@@ -28,4 +27,24 @@ export function exportUrl(format: 'geojson' | 'csv', filters: Partial<AssetFilte
     neighborhood: filters.neighborhood,
   })
   return `/api/export/assets.${format}${query}`
+}
+
+// Dışa aktarma uç noktası kimlik ister; <a href> tarayıcıda Authorization başlığı gönderemez.
+// Bu yüzden dosya kimlikli istekle alınır ve blob olarak indirilir.
+export async function downloadExport(format: 'geojson' | 'csv', filters: Partial<AssetFilters> = {}) {
+  const response = await authFetch(exportUrl(format, filters))
+  const blob = await response.blob()
+
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition)
+  const fileName = match ? decodeURIComponent(match[1]) : `smartcity-varliklar.${format}`
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }

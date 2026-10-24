@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Features;
 using SmartCityGis.Api.Data;
 using SmartCityGis.Api.Models;
+using SmartCityGis.Api.Security;
 using SmartCityGis.Api.Services;
 
 namespace SmartCityGis.Api.Controllers;
@@ -74,6 +76,7 @@ public class NeighborhoodsController(AppDbContext db) : ControllerBase
 
     /// <summary>"Belirsiz" mahalleli varlıkları konumlarına göre yeniden eşleştirir.</summary>
     [HttpPost("reassign")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<ActionResult<object>> Reassign(CancellationToken ct)
     {
         // Tek bir SQL: her varlığın temsil noktasını kapsayan en küçük mahalleyi bulur.

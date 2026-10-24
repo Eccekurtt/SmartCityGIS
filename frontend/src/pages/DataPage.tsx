@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
-import { exportUrl } from '../api/data'
+import { downloadExport } from '../api/data'
 import { useToast } from '../context/ToastContext'
+import { usePermissions } from '../hooks/usePermissions'
 import {
   useGeoJsonUpload,
   useOsmAssetImport,
@@ -45,8 +46,17 @@ function ResultSummary({ result }: { result: ImportResult }) {
 }
 
 function ExportCard() {
+  const toast = useToast()
   const [selected, setSelected] = useState<AssetCategory[]>([])
   const filters = { categories: selected }
+
+  async function exportFile(format: 'geojson' | 'csv') {
+    try {
+      await downloadExport(format, filters)
+    } catch (err) {
+      toast.error((err as Error).message)
+    }
+  }
 
   return (
     <section className="card data-card">
@@ -74,12 +84,12 @@ function ExportCard() {
       <p className="field-hint">Hiçbiri seçili değilse tüm varlıklar indirilir.</p>
 
       <div className="data-actions">
-        <a className="btn primary" href={exportUrl('geojson', filters)} download>
+        <button className="btn primary" onClick={() => exportFile('geojson')}>
           GeoJSON indir
-        </a>
-        <a className="btn" href={exportUrl('csv', filters)} download>
+        </button>
+        <button className="btn" onClick={() => exportFile('csv')}>
           CSV indir (Excel)
-        </a>
+        </button>
       </div>
       <p className="field-hint">
         GeoJSON, geometrileri (nokta, çizgi, alan) korur ve doğrudan QGIS'e sürüklenebilir. CSV, Türkçe Excel için
@@ -323,6 +333,8 @@ function OsmCard() {
 }
 
 export function DataPage() {
+  const { isAdmin } = usePermissions()
+
   return (
     <>
       <div className="page-head">
@@ -334,8 +346,19 @@ export function DataPage() {
 
       <div className="data-grid">
         <ExportCard />
-        <GeoJsonImportCard />
-        <OsmCard />
+        {isAdmin ? (
+          <>
+            <GeoJsonImportCard />
+            <OsmCard />
+          </>
+        ) : (
+          <section className="card data-card">
+            <header>
+              <h2>İçe aktarma</h2>
+              <p>GeoJSON ve OpenStreetMap içe aktarma yalnızca sistem yöneticileri içindir.</p>
+            </header>
+          </section>
+        )}
       </div>
     </>
   )

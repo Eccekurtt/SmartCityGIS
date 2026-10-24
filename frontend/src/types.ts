@@ -253,3 +253,45 @@ export interface ImportResult {
   byKind: Record<string, number>
   messages: string[]
 }
+
+// ---- Oturum, kullanıcı yönetimi, denetim ----
+export type UserRole = 'Viewer' | 'Operator' | 'Admin'
+
+export interface SessionUser {
+  id: number
+  userName: string
+  displayName: string
+  role: UserRole
+}
+
+export interface LoginResponse {
+  token: string
+  expiresAt: string
+  user: SessionUser
+}
+
+export interface ManagedUser extends SessionUser {
+  isActive: boolean
+  createdAt: string
+  lastLoginAt: string | null
+}
+
+export interface AuditEntry {
+  id: number
+  at: string
+  userName: string
+  action: string
+  entityType: string
+  entityId: string | null
+  summary: string | null
+  changes: string | null
+  ipAddress: string | null
+}
+
+export interface AuditFilters {
+  entityType: string
+  action: string
+  userName: string
+  from: string
+  to: string
+}

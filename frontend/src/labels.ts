@@ -4,6 +4,7 @@ import type {
   MaintenancePriority,
   MaintenanceStatus,
   MaintenanceType,
+  UserRole,
 } from './types'
 
 export const categoryLabels: Record<AssetCategory, string> = {
@@ -86,3 +87,26 @@ export const priorityColors: Record<MaintenancePriority, string> = {
 export const maintenanceTypes = Object.keys(maintenanceTypeLabels) as MaintenanceType[]
 export const maintenanceStatuses = Object.keys(maintenanceStatusLabels) as MaintenanceStatus[]
 export const priorities = Object.keys(priorityLabels) as MaintenancePriority[]
+
+// ---- Kullanıcılar ve denetim ----
+export const roleLabels: Record<UserRole, string> = {
+  Viewer: 'İzleyici',
+  Operator: 'Operatör',
+  Admin: 'Yönetici',
+}
+
+export const auditActionLabels: Record<string, string> = {
+  Create: 'Oluşturma',
+  Update: 'Güncelleme',
+  Delete: 'Silme',
+  Login: 'Giriş',
+  LoginFailed: 'Başarısız giriş',
+}
+
+export const auditEntityLabels: Record<string, string> = {
+  Asset: 'Varlık',
+  MaintenanceRecord: 'Bakım kaydı',
+  Neighborhood: 'Mahalle',
+  AppUser: 'Kullanıcı',
+  Auth: 'Oturum',
+}

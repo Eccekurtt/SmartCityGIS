@@ -15,6 +15,10 @@ public class AppDbContext : DbContext
 
     public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
 
+    public DbSet<AppUser> Users => Set<AppUser>();
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("postgis");
@@ -67,6 +71,32 @@ public class AppDbContext : DbContext
             entity.Property(a => a.ExternalId).HasMaxLength(60);
             // Aynı dış kaynaktan gelen kayıt iki kez eklenemez (NULL olanlar muaf).
             entity.HasIndex(a => a.ExternalId).IsUnique().HasFilter("\"ExternalId\" IS NOT NULL");
+        });
+
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            entity.Property(u => u.UserName).HasMaxLength(50);
+            entity.Property(u => u.DisplayName).HasMaxLength(100);
+            entity.Property(u => u.PasswordHash).HasMaxLength(500);
+            entity.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
+
+            // Kullanıcı adı büyük/küçük harf duyarsız benzersiz olmalı ("Admin" ile "admin" aynı kişi).
+            entity.HasIndex(u => u.UserName).IsUnique();
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.Property(a => a.UserName).HasMaxLength(50);
+            entity.Property(a => a.Action).HasMaxLength(20);
+            entity.Property(a => a.EntityType).HasMaxLength(40);
+            entity.Property(a => a.EntityId).HasMaxLength(40);
+            entity.Property(a => a.Summary).HasMaxLength(200);
+            entity.Property(a => a.IpAddress).HasMaxLength(45);
+            entity.Property(a => a.Changes).HasColumnType("jsonb");
+
+            entity.HasIndex(a => a.At);
+            entity.HasIndex(a => new { a.EntityType, a.EntityId });
+            entity.HasIndex(a => a.UserName);
         });
 
         modelBuilder.Entity<MaintenanceRecord>(entity =>

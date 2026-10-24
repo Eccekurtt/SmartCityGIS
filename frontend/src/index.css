@@ -1829,14 +1829,21 @@ code {
   box-shadow: var(--shadow);
 }
 
-.export-menu-list a {
+.export-menu-list a,
+.export-menu-list button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   padding: 7px 10px;
   border-radius: 6px;
   color: var(--text);
   text-decoration: none;
 }
 
-.export-menu-list a:hover {
+.export-menu-list a:hover,
+.export-menu-list button:hover {
   background: var(--surface-2);
 }
 
@@ -1848,4 +1855,232 @@ code {
   .data-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Oturum: kullanıcı kutusu ve giriş sayfası ---------- */
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.user-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.user-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.user-role {
+  font-size: 0.72rem;
+  color: #9db4cf;
+}
+
+.logout-btn {
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nav {
+  margin-right: 0;
+}
+
+.splash {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  color: var(--muted);
+}
+
+.login-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(37, 99, 235, 0.18), transparent 45%),
+    radial-gradient(circle at 80% 90%, rgba(14, 165, 233, 0.16), transparent 40%),
+    var(--bg);
+}
+
+.login-card {
+  width: min(400px, 100%);
+  padding: 28px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.login-brand h1 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.login-brand p {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.login-submit {
+  width: 100%;
+  padding: 11px;
+}
+
+.demo-box {
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.82rem;
+}
+
+.demo-box p {
+  margin: 4px 0 10px;
+  color: var(--muted);
+}
+
+.demo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------- Kullanıcılar ve denetim ---------- */
+.role-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.role-Admin {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.role-Operator {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.role-Viewer {
+  background: var(--idle-soft);
+  color: var(--idle);
+}
+
+.role-help {
+  padding: 18px 20px;
+}
+
+.role-help h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.role-help ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.check-row {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+}
+
+.plain-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.audit-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--idle-soft);
+  color: var(--idle);
+}
+
+.audit-Create {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.audit-Update {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.audit-Delete,
+.audit-LoginFailed {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.audit-Login {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+tbody tr.expandable {
+  cursor: pointer;
+}
+
+.expand-hint {
+  font-size: 0.75rem;
+  color: var(--primary);
+}
+
+tr.detail-row,
+tr.detail-row:hover {
+  background: var(--surface-2);
+  cursor: default;
+}
+
+.changes {
+  margin: 0;
+  padding: 0 0 0 18px;
+  font-size: 0.84rem;
+}
+
+.changes del {
+  color: var(--danger);
+}
+
+.changes ins {
+  color: var(--ok);
+  text-decoration: none;
+  font-weight: 600;
 }

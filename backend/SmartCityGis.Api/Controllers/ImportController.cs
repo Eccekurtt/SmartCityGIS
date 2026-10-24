@@ -1,11 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartCityGis.Api.Security;
 using SmartCityGis.Api.Services;
 
 namespace SmartCityGis.Api.Controllers;
 
 [ApiController]
 [Route("api/import")]
+[Authorize(Policy = Policies.AdminOnly)]
 public class ImportController(OsmImporter osm, GeoJsonImporter geoJson) : ControllerBase
 {
     /// <summary>

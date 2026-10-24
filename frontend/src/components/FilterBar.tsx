@@ -1,4 +1,5 @@
-import { exportUrl } from '../api/data'
+import { downloadExport } from '../api/data'
+import { useToast } from '../context/ToastContext'
 import { categories, categoryColors, categoryLabels, statusColors, statuses, statusLabels } from '../labels'
 import type { AssetCategory, AssetFilters, AssetStatus } from '../types'
 import { SearchIcon } from './icons'
@@ -16,6 +17,16 @@ function toggle<T>(list: T[], value: T): T[] {
 }
 
 export function FilterBar({ filters, onChange, total, neighborhoods }: Props) {
+  const toast = useToast()
+
+  async function exportFile(format: 'geojson' | 'csv') {
+    try {
+      await downloadExport(format, filters)
+    } catch (err) {
+      toast.error((err as Error).message)
+    }
+  }
+
   const active =
     filters.search !== '' || filters.categories.length > 0 || filters.statuses.length > 0 || filters.neighborhood !== ''
 
@@ -67,12 +78,12 @@ export function FilterBar({ filters, onChange, total, neighborhoods }: Props) {
         <details className="export-menu">
           <summary className="btn small">Dışa aktar</summary>
           <div className="export-menu-list">
-            <a href={exportUrl('geojson', filters)} download>
+            <button type="button" onClick={() => exportFile('geojson')}>
               GeoJSON <small>(geometrili, QGIS)</small>
-            </a>
-            <a href={exportUrl('csv', filters)} download>
+            </button>
+            <button type="button" onClick={() => exportFile('csv')}>
               CSV <small>(Excel)</small>
-            </a>
+            </button>
             <span className="field-hint">Geçerli filtreler uygulanır.</span>
           </div>
         </details>

@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartCityGis.Api.Common;
 using SmartCityGis.Api.Data;
 using SmartCityGis.Api.Dtos;
 using SmartCityGis.Api.Models;
+using SmartCityGis.Api.Security;
 using SmartCityGis.Api.Services;
 
 namespace SmartCityGis.Api.Controllers;
@@ -38,6 +40,7 @@ public class MaintenanceController(AppDbContext db) : ControllerBase
 
     /// <summary>Varlık için yeni bakım planlar.</summary>
     [HttpPost("api/assets/{assetId:int}/maintenance")]
+    [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<MaintenanceDto>> Create(int assetId, MaintenanceRequest request, CancellationToken ct)
     {
         if (!await db.Assets.AnyAsync(a => a.Id == assetId, ct)) return NotFound();
@@ -130,6 +133,7 @@ public class MaintenanceController(AppDbContext db) : ControllerBase
 
     /// <summary>Planlı veya devam eden kaydın alanlarını günceller.</summary>
     [HttpPut("api/maintenance/{id:int}")]
+    [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<MaintenanceDto>> Update(int id, MaintenanceRequest request, CancellationToken ct)
     {
         var record = await db.MaintenanceRecords.FindAsync([id], ct);
@@ -158,6 +162,7 @@ public class MaintenanceController(AppDbContext db) : ControllerBase
 
     /// <summary>Durum geçişi (başlat, tamamla, iptal et). Varlığın durumu otomatik güncellenir.</summary>
     [HttpPost("api/maintenance/{id:int}/status")]
+    [Authorize(Policy = Policies.CanWrite)]
     public async Task<ActionResult<MaintenanceDto>> ChangeStatus(
         int id, MaintenanceStatusRequest request, CancellationToken ct)
     {
@@ -198,6 +203,7 @@ public class MaintenanceController(AppDbContext db) : ControllerBase
     }
 
     [HttpDelete("api/maintenance/{id:int}")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var record = await db.MaintenanceRecords.Include(m => m.Asset).FirstOrDefaultAsync(m => m.Id == id, ct);
