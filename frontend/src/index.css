@@ -144,6 +144,58 @@ button.danger {
   border-radius: 8px;
 }
 
+.map-wrapper {
+  margin-bottom: 20px;
+}
+
+.map {
+  height: 440px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.legend .dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 5px;
+  border: 2px solid #1f2937;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.legend .dashed {
+  border: 2px dashed #dc2626;
+}
+
+.legend .faded {
+  background: #9ca3af;
+  opacity: 0.4;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tbody tr:hover {
+  background: #f9fafb;
+}
+
+tbody tr.selected {
+  background: #dbeafe;
+}
+
 .form {
   display: flex;
   flex-direction: column;

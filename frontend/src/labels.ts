@@ -8,6 +8,14 @@ export const categoryLabels: Record<AssetCategory, string> = {
   Infrastructure: 'Altyapı',
 }
 
+export const categoryColors: Record<AssetCategory, string> = {
+  Park: '#16a34a',
+  Road: '#6b7280',
+  Building: '#7c3aed',
+  StreetLight: '#f59e0b',
+  Infrastructure: '#0ea5e9',
+}
+
 export const statusLabels: Record<AssetStatus, string> = {
   Active: 'Aktif',
   UnderMaintenance: 'Bakımda',

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createAsset, deleteAsset, getAssets, updateAsset } from './api'
 import { AssetForm } from './components/AssetForm'
+import { AssetMap } from './components/AssetMap'
 import { AssetTable } from './components/AssetTable'
 import { categoryLabels, statusLabels } from './labels'
 import type { Asset, AssetCategory, AssetInput, AssetStatus } from './types'
@@ -18,6 +19,8 @@ function App() {
   const [status, setStatus] = useState<AssetStatus | ''>('')
 
   const [form, setForm] = useState<FormState>(null)
+  // Harita ve tablo aynı seçimi paylaşır.
+  const [selectedId, setSelectedId] = useState<number | null>(null)
 
   // İlk yükleme.
   useEffect(() => {
@@ -72,6 +75,7 @@ function App() {
 
     try {
       await deleteAsset(asset.id)
+      if (selectedId === asset.id) setSelectedId(null)
       await reload()
     } catch (err) {
       setError((err as Error).message)
@@ -130,7 +134,18 @@ function App() {
       {loading && <p>Yükleniyor...</p>}
       {error && <p className="error">{error}</p>}
 
-      {!loading && <AssetTable assets={filtered} onEdit={setForm} onDelete={handleDelete} />}
+      {!loading && (
+        <>
+          <AssetMap assets={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+          <AssetTable
+            assets={filtered}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onEdit={setForm}
+            onDelete={handleDelete}
+          />
+        </>
+      )}
     </main>
   )
 }
