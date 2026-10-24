@@ -186,11 +186,20 @@ function SelectionController({
   registry: RefObject<Registry>
 }) {
   const map = useMap()
+  // En son odaklanılan varlık: veri yenilenince (filtre, düzenleme) harita yeniden kaymasın,
+  // ama seçim veriden önce gelmişse (sayfa açılışında ?select=12) veri gelince uygulansın.
+  const focused = useRef<number | null>(null)
 
   useEffect(() => {
-    if (selectedId === null || !collection) return
+    if (selectedId === null) {
+      focused.current = null
+      return
+    }
+    if (!collection || focused.current === selectedId) return
+
     const feature = collection.features.find((f) => f.properties.id === selectedId)
     if (!feature) return
+    focused.current = selectedId
 
     const bounds = L.geoJSON(feature.geometry).getBounds()
     if (feature.geometry.type === 'Point') {
@@ -199,14 +208,22 @@ function SelectionController({
       map.flyToBounds(bounds, { maxZoom: 17, padding: [60, 60], duration: 0.6 })
     }
 
-    const layer = registry.current.get(selectedId)
-    if (layer && map.hasLayer(layer)) {
-      layer.bringToFront()
-      layer.openPopup()
+    // Popup'ı kaydırma animasyonu bitince aç: sayfa açılışında katman nesneleri henüz haritaya
+    // eklenmemiş olabilir, bu yüzden kısa bir gecikmeyle (ve moveend ile) denenir.
+    const openPopup = () => {
+      const layer = registry.current.get(selectedId)
+      if (layer && map.hasLayer(layer)) {
+        layer.bringToFront()
+        if (!layer.isPopupOpen()) layer.openPopup()
+      }
     }
-    // collection kasıtlı olarak bağımlılık değil: veri yenilenince harita yeniden kaymasın.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, map, registry])
+    map.once('moveend', openPopup)
+    const timer = setTimeout(openPopup, 900)
+    return () => {
+      clearTimeout(timer)
+      map.off('moveend', openPopup)
+    }
+  }, [selectedId, collection, map, registry])
 
   return null
 }

@@ -16,6 +16,8 @@ export interface Asset {
   description: string | null
   createdAt: string
   updatedAt: string | null
+  source: string
+  externalId: string | null
   // PostgreSQL'in ürettiği değerler
   latitude: number
   longitude: number
@@ -135,4 +137,91 @@ export interface NeighborhoodStats {
 export interface NeighborhoodAt {
   name: string
   district: string
+}
+
+// ---- Bakım ----
+export type MaintenanceType = 'Routine' | 'Repair' | 'Inspection' | 'Replacement' | 'Emergency'
+export type MaintenanceStatus = 'Planned' | 'InProgress' | 'Completed' | 'Cancelled'
+export type MaintenancePriority = 'Low' | 'Normal' | 'High' | 'Critical'
+
+export interface MaintenanceRecord {
+  id: number
+  assetId: number
+  assetName: string
+  assetCategory: AssetCategory
+  title: string
+  type: MaintenanceType
+  priority: MaintenancePriority
+  status: MaintenanceStatus
+  scheduledDate: string // "2026-10-24"
+  startedAt: string | null
+  completedAt: string | null
+  description: string | null
+  technician: string | null
+  cost: number | null
+  isOverdue: boolean
+  createdAt: string
+}
+
+export interface MaintenanceInput {
+  title: string
+  type: MaintenanceType
+  priority: MaintenancePriority
+  scheduledDate: string
+  description: string | null
+  technician: string | null
+  cost: number | null
+}
+
+export interface MaintenanceSummary {
+  planned: number
+  inProgress: number
+  overdue: number
+  dueNext7Days: number
+  completedLast30Days: number
+  costLast30Days: number
+}
+
+export interface MaintenanceFilters {
+  statuses: MaintenanceStatus[]
+  types: MaintenanceType[]
+  overdueOnly: boolean
+  search: string
+}
+
+// ---- Rapor paneli ----
+export interface NeighborhoodCount {
+  name: string
+  assets: number
+  underMaintenance: number
+}
+
+export interface MonthlyPoint {
+  month: string // "2026-10"
+  completed: number
+  cost: number
+}
+
+export interface UpcomingItem {
+  id: number
+  assetId: number
+  assetName: string
+  title: string
+  type: MaintenanceType
+  priority: MaintenancePriority
+  scheduledDate: string
+  isOverdue: boolean
+}
+
+export interface Dashboard {
+  summary: Summary
+  topNeighborhoods: NeighborhoodCount[]
+  maintenanceByMonth: MonthlyPoint[]
+  maintenanceByType: CountItem[]
+  maintenanceByStatus: CountItem[]
+  upcoming: UpcomingItem[]
+  overdueCount: number
+  costLast12Months: number
+  avgCompletionDays: number | null
+  assetsNeverMaintained: number
 }

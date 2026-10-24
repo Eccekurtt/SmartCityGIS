@@ -30,6 +30,10 @@ public class Asset
     // Dış sistemdeki kimliği (örn. "osm:way/12345"). Aynı kaydı iki kez içe aktarmamak için benzersizdir.
     public string? ExternalId { get; set; }
 
+    // Bire-çok ilişki: bir varlığın birden çok bakım kaydı olur. JSON'a yazılmaz (ayrı uç noktadan okunur).
+    [JsonIgnore]
+    public List<MaintenanceRecord> MaintenanceRecords { get; set; } = [];
+
     // ---- Aşağıdakiler PostgreSQL'in ürettiği (generated, stored) sütunlardır. ----
     // Geometry değişince veritabanı bunları kendisi yeniden hesaplar; uygulama yazmaz.
 

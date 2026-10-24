@@ -1,11 +1,13 @@
-import { PinIcon, PlusIcon } from './icons'
+import { NavLink } from 'react-router-dom'
+import { PinIcon } from './icons'
 
-interface Props {
-  onNew: () => void
-  disabled: boolean
-}
+const links = [
+  { to: '/', label: 'Harita', end: true },
+  { to: '/panel', label: 'Panel', end: false },
+  { to: '/bakim', label: 'Bakım', end: false },
+]
 
-export function Header({ onNew, disabled }: Props) {
+export function Header() {
   return (
     <header className="topbar">
       <div className="topbar-inner">
@@ -19,10 +21,18 @@ export function Header({ onNew, disabled }: Props) {
           </div>
         </div>
 
-        <button className="btn primary" onClick={onNew} disabled={disabled}>
-          <PlusIcon size={16} />
-          Yeni Varlık
-        </button>
+        <nav className="nav" aria-label="Ana menü">
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
       </div>
     </header>
   )

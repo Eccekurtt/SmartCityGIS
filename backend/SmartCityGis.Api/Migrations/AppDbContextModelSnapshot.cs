@@ -135,6 +135,75 @@ namespace SmartCityGis.Api.Migrations
                     b.ToTable("Assets");
                 });
 
+            modelBuilder.Entity("SmartCityGis.Api.Models.MaintenanceRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AssetId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Cost")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateOnly>("ScheduledDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Technician")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScheduledDate");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("AssetId", "Status");
+
+                    b.ToTable("MaintenanceRecords");
+                });
+
             modelBuilder.Entity("SmartCityGis.Api.Models.Neighborhood", b =>
                 {
                     b.Property<int>("Id")
@@ -187,6 +256,22 @@ namespace SmartCityGis.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("Neighborhoods");
+                });
+
+            modelBuilder.Entity("SmartCityGis.Api.Models.MaintenanceRecord", b =>
+                {
+                    b.HasOne("SmartCityGis.Api.Models.Asset", "Asset")
+                        .WithMany("MaintenanceRecords")
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Asset");
+                });
+
+            modelBuilder.Entity("SmartCityGis.Api.Models.Asset", b =>
+                {
+                    b.Navigation("MaintenanceRecords");
                 });
 #pragma warning restore 612, 618
         }

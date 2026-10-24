@@ -1,4 +1,10 @@
-import type { AssetCategory, AssetStatus } from './types'
+import type {
+  AssetCategory,
+  AssetStatus,
+  MaintenancePriority,
+  MaintenanceStatus,
+  MaintenanceType,
+} from './types'
 
 export const categoryLabels: Record<AssetCategory, string> = {
   Park: 'Park',
@@ -39,3 +45,44 @@ export const geometryLabels: Record<string, string> = {
 
 export const categories = Object.keys(categoryLabels) as AssetCategory[]
 export const statuses = Object.keys(statusLabels) as AssetStatus[]
+
+// ---- Bakım ----
+export const maintenanceTypeLabels: Record<MaintenanceType, string> = {
+  Routine: 'Periyodik bakım',
+  Repair: 'Onarım',
+  Inspection: 'Denetim',
+  Replacement: 'Parça değişimi',
+  Emergency: 'Acil müdahale',
+}
+
+export const maintenanceStatusLabels: Record<MaintenanceStatus, string> = {
+  Planned: 'Planlandı',
+  InProgress: 'Devam ediyor',
+  Completed: 'Tamamlandı',
+  Cancelled: 'İptal edildi',
+}
+
+export const maintenanceStatusColors: Record<MaintenanceStatus, string> = {
+  Planned: '#2563eb',
+  InProgress: '#d97706',
+  Completed: '#16a34a',
+  Cancelled: '#64748b',
+}
+
+export const priorityLabels: Record<MaintenancePriority, string> = {
+  Low: 'Düşük',
+  Normal: 'Normal',
+  High: 'Yüksek',
+  Critical: 'Kritik',
+}
+
+export const priorityColors: Record<MaintenancePriority, string> = {
+  Low: '#64748b',
+  Normal: '#2563eb',
+  High: '#d97706',
+  Critical: '#dc2626',
+}
+
+export const maintenanceTypes = Object.keys(maintenanceTypeLabels) as MaintenanceType[]
+export const maintenanceStatuses = Object.keys(maintenanceStatusLabels) as MaintenanceStatus[]
+export const priorities = Object.keys(priorityLabels) as MaintenancePriority[]

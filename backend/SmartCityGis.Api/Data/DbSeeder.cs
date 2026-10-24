@@ -16,6 +16,108 @@ public static class DbSeeder
     {
         await SeedNeighborhoodsAsync(db, Path.Combine(contentRoot, "SeedData", "neighborhoods.geojson"));
         await SeedAssetsAsync(db, locator);
+        await SeedMaintenanceAsync(db);
+    }
+
+    // Gerçekçi bir bakım geçmişi üretir: tamamlanmış işler, yaklaşan planlar, gecikmişler ve devam edenler.
+    // Rastgelelik sabit tohumlu (42) olduğundan her kurulumda aynı örnek veri oluşur.
+    private static async Task SeedMaintenanceAsync(AppDbContext db)
+    {
+        if (await db.MaintenanceRecords.AnyAsync()) return;
+
+        var assets = await db.Assets.AsNoTracking().OrderBy(a => a.Id)
+            .Select(a => new { a.Id, a.Category, a.Status })
+            .Take(80)
+            .ToListAsync();
+        if (assets.Count == 0) return;
+
+        var random = new Random(42);
+        var today = Common.Clock.Today;
+        var technicians = new[] { "Ahmet Yılmaz", "Zeynep Kaya", "Mehmet Demir", "Elif Şahin", "Mustafa Çelik", "Ayşe Arslan" };
+
+        var catalog = new Dictionary<AssetCategory, (string Title, MaintenanceType Type)[]>
+        {
+            [AssetCategory.Park] =
+            [
+                ("Çim biçimi ve budama", MaintenanceType.Routine), ("Sulama sistemi onarımı", MaintenanceType.Repair),
+                ("Oyun grubu güvenlik denetimi", MaintenanceType.Inspection), ("Bank ve çöp kutusu yenileme", MaintenanceType.Replacement)
+            ],
+            [AssetCategory.Road] =
+            [
+                ("Asfalt yama çalışması", MaintenanceType.Repair), ("Yol çizgisi boyama", MaintenanceType.Routine),
+                ("Çukur doldurma", MaintenanceType.Emergency), ("Kaplama durum denetimi", MaintenanceType.Inspection)
+            ],
+            [AssetCategory.StreetLight] =
+            [
+                ("Ampul değişimi", MaintenanceType.Replacement), ("Armatür temizliği", MaintenanceType.Routine),
+                ("Kablo ve pano kontrolü", MaintenanceType.Inspection), ("Arızalı direk onarımı", MaintenanceType.Repair)
+            ],
+            [AssetCategory.Building] =
+            [
+                ("Çatı izolasyonu onarımı", MaintenanceType.Repair), ("Elektrik tesisatı kontrolü", MaintenanceType.Inspection),
+                ("Boya badana", MaintenanceType.Routine), ("Yangın söndürücü değişimi", MaintenanceType.Replacement)
+            ],
+            [AssetCategory.Infrastructure] =
+            [
+                ("Vana bakımı", MaintenanceType.Routine), ("Basınç testi", MaintenanceType.Inspection),
+                ("Pompa servisi", MaintenanceType.Repair), ("Sızıntı acil müdahalesi", MaintenanceType.Emergency)
+            ],
+        };
+
+        MaintenanceRecord Make(int assetId, AssetCategory category, MaintenanceStatus status, int dayOffset)
+        {
+            var (title, type) = catalog[category][random.Next(catalog[category].Length)];
+            var scheduled = today.AddDays(dayOffset);
+            var record = new MaintenanceRecord
+            {
+                AssetId = assetId,
+                Title = title,
+                Type = type,
+                Priority = (MaintenancePriority)random.Next(0, 4),
+                Status = status,
+                ScheduledDate = scheduled,
+                Technician = technicians[random.Next(technicians.Length)],
+                Description = $"{title} — rutin saha çalışması.",
+                CreatedAt = DateTime.UtcNow.AddDays(Math.Min(dayOffset, 0) - 2)
+            };
+
+            var scheduledAt = scheduled.ToDateTime(new TimeOnly(9, 0), DateTimeKind.Utc);
+            if (status is MaintenanceStatus.InProgress or MaintenanceStatus.Completed)
+                record.StartedAt = scheduledAt;
+            if (status == MaintenanceStatus.Completed)
+            {
+                record.CompletedAt = scheduledAt.AddDays(random.Next(0, 4)).AddHours(random.Next(2, 8));
+                record.Cost = Math.Round((decimal)(random.Next(300, 24000)), 0);
+            }
+            return record;
+        }
+
+        var records = new List<MaintenanceRecord>();
+        foreach (var asset in assets)
+        {
+            // Devam eden bakımı olan varlıklar zaten "Bakımda" durumundadır; tutarlı bir kayıt ekle.
+            if (asset.Status == AssetStatus.UnderMaintenance)
+                records.Add(Make(asset.Id, asset.Category, MaintenanceStatus.InProgress, -random.Next(1, 8)));
+
+            // Geçmiş tamamlanmış işler (son ~11 aya yayılmış).
+            for (var i = random.Next(0, 4); i > 0; i--)
+                records.Add(Make(asset.Id, asset.Category, MaintenanceStatus.Completed, -random.Next(3, 330)));
+
+            // Yaklaşan planlı iş (bazıları).
+            if (random.NextDouble() < 0.35)
+                records.Add(Make(asset.Id, asset.Category, MaintenanceStatus.Planned, random.Next(1, 40)));
+
+            // Gecikmiş planlı iş (az sayıda).
+            if (random.NextDouble() < 0.10)
+                records.Add(Make(asset.Id, asset.Category, MaintenanceStatus.Planned, -random.Next(1, 25)));
+
+            // İptal edilmiş kayıt (çok az).
+            if (random.NextDouble() < 0.05)
+                records.Add(Make(asset.Id, asset.Category, MaintenanceStatus.Cancelled, -random.Next(10, 100)));
+        }
+
+        db.MaintenanceRecords.AddRange(records);
+        await db.SaveChangesAsync();
     }
 
     private static async Task SeedNeighborhoodsAsync(AppDbContext db, string path)

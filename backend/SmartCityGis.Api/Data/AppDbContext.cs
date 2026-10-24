@@ -13,6 +13,8 @@ public class AppDbContext : DbContext
 
     public DbSet<Neighborhood> Neighborhoods => Set<Neighborhood>();
 
+    public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("postgis");
@@ -65,6 +67,28 @@ public class AppDbContext : DbContext
             entity.Property(a => a.ExternalId).HasMaxLength(60);
             // Aynı dış kaynaktan gelen kayıt iki kez eklenemez (NULL olanlar muaf).
             entity.HasIndex(a => a.ExternalId).IsUnique().HasFilter("\"ExternalId\" IS NOT NULL");
+        });
+
+        modelBuilder.Entity<MaintenanceRecord>(entity =>
+        {
+            entity.Property(m => m.Title).HasMaxLength(120);
+            entity.Property(m => m.Description).HasMaxLength(1000);
+            entity.Property(m => m.Technician).HasMaxLength(100);
+            entity.Property(m => m.Cost).HasPrecision(12, 2);
+
+            entity.Property(m => m.Type).HasConversion<string>().HasMaxLength(20);
+            entity.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
+            entity.Property(m => m.Priority).HasConversion<string>().HasMaxLength(20);
+
+            // Varlık silinirse bakım kayıtları da silinir (kayıtsız bakım anlamsızdır).
+            entity.HasOne(m => m.Asset)
+                .WithMany(a => a.MaintenanceRecords)
+                .HasForeignKey(m => m.AssetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(m => new { m.AssetId, m.Status });
+            entity.HasIndex(m => m.ScheduledDate);
+            entity.HasIndex(m => m.Status);
         });
 
         modelBuilder.Entity<Neighborhood>(entity =>
