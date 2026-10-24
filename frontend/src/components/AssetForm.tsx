@@ -44,8 +44,6 @@ export function AssetForm({ asset, onSubmit, onCancel }: Props) {
 
   return (
     <form className="form" onSubmit={handleSubmit}>
-      <h2>{asset ? 'Varlığı Düzenle' : 'Yeni Varlık'}</h2>
-
       <label>
         Ad
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required />
@@ -123,14 +121,14 @@ export function AssetForm({ asset, onSubmit, onCancel }: Props) {
         />
       </label>
 
-      {error && <p className="error">{error}</p>}
+      {error && <p className="form-error">{error}</p>}
 
-      <div className="actions">
-        <button type="submit" className="primary" disabled={saving}>
-          {saving ? 'Kaydediliyor...' : 'Kaydet'}
-        </button>
-        <button type="button" onClick={onCancel} disabled={saving}>
+      <div className="form-actions">
+        <button type="button" className="btn" onClick={onCancel} disabled={saving}>
           Vazgeç
+        </button>
+        <button type="submit" className="btn primary" disabled={saving}>
+          {saving ? 'Kaydediliyor...' : 'Kaydet'}
         </button>
       </div>
     </form>

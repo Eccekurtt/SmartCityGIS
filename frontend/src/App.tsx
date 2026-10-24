@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createAsset, deleteAsset, getAssets, updateAsset } from './api'
 import { AssetForm } from './components/AssetForm'
 import { AssetMap } from './components/AssetMap'
 import { AssetTable } from './components/AssetTable'
+import { ConfirmDialog } from './components/ConfirmDialog'
+import { Header } from './components/Header'
+import { SearchIcon } from './components/icons'
+import { Modal } from './components/Modal'
+import { StatCards } from './components/StatCards'
+import { Toast } from './components/Toast'
+import type { ToastMessage } from './components/Toast'
 import { categoryLabels, statusLabels } from './labels'
 import type { Asset, AssetCategory, AssetInput, AssetStatus } from './types'
 
@@ -19,8 +26,10 @@ function App() {
   const [status, setStatus] = useState<AssetStatus | ''>('')
 
   const [form, setForm] = useState<FormState>(null)
+  const [deleting, setDeleting] = useState<Asset | null>(null)
   // Harita ve tablo aynı seçimi paylaşır.
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [toast, setToast] = useState<ToastMessage | null>(null)
 
   // İlk yükleme.
   useEffect(() => {
@@ -37,13 +46,15 @@ function App() {
     return () => controller.abort()
   }, [])
 
-  // Ekleme / düzenleme / silme sonrası listeyi sunucudan yeniden çeker.
+  // Ekleme / düzenleme / silme sonrası ve "Tekrar dene" ile listeyi sunucudan yeniden çeker.
   async function reload() {
     try {
       setAssets(await getAssets())
       setError(null)
     } catch (err) {
       setError((err as Error).message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -60,93 +71,148 @@ function App() {
     )
   }, [assets, search, category, status])
 
+  const hasFilters = search !== '' || category !== '' || status !== ''
+  const dismissToast = useCallback(() => setToast(null), [])
+
+  function clearFilters() {
+    setSearch('')
+    setCategory('')
+    setStatus('')
+  }
+
   async function handleSubmit(input: AssetInput) {
-    if (form && form !== 'new') {
+    const isEdit = form !== null && form !== 'new'
+    if (isEdit) {
       await updateAsset(form.id, input)
     } else {
       await createAsset(input)
     }
     setForm(null)
+    setToast({ type: 'success', text: isEdit ? 'Varlık güncellendi.' : 'Varlık eklendi.' })
     await reload()
   }
 
-  async function handleDelete(asset: Asset) {
-    if (!window.confirm(`"${asset.name}" silinsin mi?`)) return
+  async function handleDelete() {
+    if (!deleting) return
 
     try {
-      await deleteAsset(asset.id)
-      if (selectedId === asset.id) setSelectedId(null)
+      await deleteAsset(deleting.id)
+      if (selectedId === deleting.id) setSelectedId(null)
+      setToast({ type: 'success', text: `"${deleting.name}" silindi.` })
       await reload()
     } catch (err) {
-      setError((err as Error).message)
+      setToast({ type: 'error', text: (err as Error).message })
+    } finally {
+      setDeleting(null)
     }
   }
 
   return (
-    <main className="container">
-      <header className="header">
-        <div>
-          <h1>SmartCity GIS</h1>
-          <p className="subtitle">Belediye Varlık Yönetim Sistemi</p>
-        </div>
-        <button className="primary" onClick={() => setForm('new')} disabled={form !== null}>
-          + Yeni Varlık
-        </button>
-      </header>
+    <>
+      <Header onNew={() => setForm('new')} disabled={form !== null} />
 
-      {form !== null && (
-        <AssetForm
-          key={form === 'new' ? 'new' : form.id}
-          asset={form === 'new' ? null : form}
-          onSubmit={handleSubmit}
-          onCancel={() => setForm(null)}
-        />
-      )}
+      <main className="container">
+        <StatCards assets={assets} loading={loading} />
 
-      <div className="filters">
-        <input
-          type="search"
-          placeholder="Ad veya mahalle ara..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select value={category} onChange={(e) => setCategory(e.target.value as AssetCategory | '')}>
-          <option value="">Tüm kategoriler</option>
-          {Object.entries(categoryLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value as AssetStatus | '')}>
-          <option value="">Tüm durumlar</option>
-          {Object.entries(statusLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <span className="count">
-          {filtered.length} / {assets.length} kayıt
-        </span>
-      </div>
+        {error && (
+          <div className="card banner-error" role="alert">
+            <div>
+              <strong>Veriler alınamadı.</strong> {error}
+            </div>
+            <button className="btn" onClick={reload}>
+              Tekrar dene
+            </button>
+          </div>
+        )}
 
-      {loading && <p>Yükleniyor...</p>}
-      {error && <p className="error">{error}</p>}
+        <section className="card toolbar" aria-label="Arama ve filtreler">
+          <label className="search">
+            <SearchIcon size={16} />
+            <input
+              type="search"
+              placeholder="Ad veya mahalle ara..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <select
+            aria-label="Kategori"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as AssetCategory | '')}
+          >
+            <option value="">Tüm kategoriler</option>
+            {Object.entries(categoryLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Durum"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as AssetStatus | '')}
+          >
+            <option value="">Tüm durumlar</option>
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {hasFilters && (
+            <button className="btn ghost" onClick={clearFilters}>
+              Temizle
+            </button>
+          )}
+          <span className="count">
+            <strong>{filtered.length}</strong> / {assets.length} varlık
+          </span>
+        </section>
 
-      {!loading && (
-        <>
+        <section className="card map-card" aria-label="Harita">
           <AssetMap assets={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+        </section>
+
+        <section className="card table-card" aria-label="Varlık listesi">
           <AssetTable
             assets={filtered}
+            loading={loading}
             selectedId={selectedId}
             onSelect={setSelectedId}
             onEdit={setForm}
-            onDelete={handleDelete}
+            onDelete={setDeleting}
           />
-        </>
+        </section>
+
+        <footer className="footer">
+          SmartCity GIS · ASP.NET Core · PostgreSQL/PostGIS · React · Leaflet · Harita verisi ©
+          OpenStreetMap katkıda bulunanlar
+        </footer>
+      </main>
+
+      {form !== null && (
+        <Modal title={form === 'new' ? 'Yeni Varlık' : 'Varlığı Düzenle'} onClose={() => setForm(null)}>
+          <AssetForm
+            key={form === 'new' ? 'new' : form.id}
+            asset={form === 'new' ? null : form}
+            onSubmit={handleSubmit}
+            onCancel={() => setForm(null)}
+          />
+        </Modal>
       )}
-    </main>
+
+      {deleting && (
+        <ConfirmDialog
+          title="Varlığı sil"
+          message={`"${deleting.name}" kalıcı olarak silinecek. Bu işlem geri alınamaz.`}
+          confirmLabel="Sil"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleting(null)}
+        />
+      )}
+
+      {toast && <Toast toast={toast} onDismiss={dismissToast} />}
+    </>
   )
 }
 

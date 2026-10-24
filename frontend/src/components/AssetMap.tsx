@@ -47,7 +47,8 @@ export function AssetMap({ assets, selectedId, onSelect }: Props) {
 
         <FlyToSelected asset={selected} />
 
-        <LayersControl position="topright" collapsed={false}>
+        {/* Dar ekranda katman kutusu haritayı kapatmasın diye kapalı başlar. */}
+        <LayersControl position="topright" collapsed={window.matchMedia('(max-width: 560px)').matches}>
           {categories.map((category) => (
             <LayersControl.Overlay key={category} checked name={categoryLabels[category]}>
               <LayerGroup>
