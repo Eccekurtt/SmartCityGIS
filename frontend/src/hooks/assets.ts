@@ -5,6 +5,7 @@ import {
   getAsset,
   getAssetGeoJson,
   getAssetList,
+  getNearby,
   getNeighborhoods,
   getSummary,
   updateAsset,
@@ -82,5 +83,14 @@ export function useDeleteAsset() {
   return useMutation({
     mutationFn: (id: number) => deleteAsset(id),
     onSuccess: invalidate,
+  })
+}
+
+export function useNearby(origin: { lat: number; lon: number } | null, radius: number) {
+  return useQuery({
+    queryKey: ['assets', 'nearby', origin?.lat, origin?.lon, radius],
+    queryFn: ({ signal }) => getNearby(origin!.lat, origin!.lon, radius, signal),
+    enabled: origin !== null,
+    placeholderData: keepPreviousData,
   })
 }

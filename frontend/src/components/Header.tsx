@@ -5,6 +5,7 @@ const links = [
   { to: '/', label: 'Harita', end: true },
   { to: '/panel', label: 'Panel', end: false },
   { to: '/bakim', label: 'Bakım', end: false },
+  { to: '/veri', label: 'Veri', end: false },
 ]
 
 export function Header() {

@@ -1,3 +1,4 @@
+import { exportUrl } from '../api/data'
 import { categories, categoryColors, categoryLabels, statusColors, statuses, statusLabels } from '../labels'
 import type { AssetCategory, AssetFilters, AssetStatus } from '../types'
 import { SearchIcon } from './icons'
@@ -62,6 +63,19 @@ export function FilterBar({ filters, onChange, total, neighborhoods }: Props) {
             Temizle
           </button>
         )}
+
+        <details className="export-menu">
+          <summary className="btn small">Dışa aktar</summary>
+          <div className="export-menu-list">
+            <a href={exportUrl('geojson', filters)} download>
+              GeoJSON <small>(geometrili, QGIS)</small>
+            </a>
+            <a href={exportUrl('csv', filters)} download>
+              CSV <small>(Excel)</small>
+            </a>
+            <span className="field-hint">Geçerli filtreler uygulanır.</span>
+          </div>
+        </details>
 
         <span className="count">
           {total === undefined ? (

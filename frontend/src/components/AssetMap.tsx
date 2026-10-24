@@ -23,6 +23,8 @@ import { flip, flipLine, flipPolygon } from '../lib/geo'
 import { formatArea, formatLength } from '../lib/format'
 import type { AssetFeatureCollection, AssetFeatureProps } from '../types'
 import { ExpandIcon } from './icons'
+import { useMapTools } from '../hooks/useMapTools'
+import { MapToolButtons, MapToolLayers, MapToolPanel } from './MapTools'
 import { NeighborhoodLayer } from './NeighborhoodLayer'
 
 const HOOD_LAYER_NAME = 'Mahalle yoğunluğu'
@@ -78,22 +80,24 @@ function styleFor(p: AssetFeatureProps, kind: 'point' | 'line' | 'area', selecte
 interface ShapeProps {
   feature: AssetFeatureCollection['features'][number]
   selected: boolean
+  // Ölçüm / yakın çevre aracı açıkken varlıklar tıklamaya ve popup'a cevap vermez; tıklama araca gider.
+  toolActive: boolean
   onSelect: (id: number) => void
   onOpenDetail: (id: number) => void
   registry: RefObject<Registry>
 }
 
-function AssetShape({ feature, selected, onSelect, onOpenDetail, registry }: ShapeProps) {
+function AssetShape({ feature, selected, toolActive, onSelect, onOpenDetail, registry }: ShapeProps) {
   const p = feature.properties
   const geometry = feature.geometry
-  const handlers = { click: () => onSelect(p.id) }
+  const handlers = { click: () => !toolActive && onSelect(p.id) }
 
   const register = (layer: Path | null) => {
     if (layer) registry.current.set(p.id, layer)
     else registry.current.delete(p.id)
   }
 
-  const popup = (
+  const popup = toolActive ? null : (
     <Popup>
       <div className="popup">
         <strong>{p.name}</strong>
@@ -261,6 +265,8 @@ export function AssetMap({
   const [fitSignal, setFitSignal] = useState(0)
   const requestFit = useCallback(() => setFitSignal((n) => n + 1), [])
 
+  const tools = useMapTools()
+
   const [hoodsOn, setHoodsOn] = useState(false)
   const hoods = useNeighborhoodGeoJson(hoodsOn)
   const hoodBreaks = useMemo(
@@ -335,6 +341,7 @@ export function AssetMap({
                     key={feature.properties.id}
                     feature={feature}
                     selected={feature.properties.id === selectedId}
+                    toolActive={tools.tool !== null}
                     onSelect={onSelect}
                     onOpenDetail={onOpenDetail}
                     registry={registry}
@@ -349,10 +356,14 @@ export function AssetMap({
         <Pane name="neighborhoods" style={{ zIndex: 350 }} />
         <OverlayWatcher onChange={setHoodsOn} />
 
+        <MapToolLayers tools={tools} />
         <FitController collection={collection} fitSignal={fitSignal} />
         <SelectionController collection={collection} selectedId={selectedId} registry={registry} />
         {children}
       </MapContainer>
+
+      <MapToolButtons tools={tools} />
+      <MapToolPanel tools={tools} onSelect={onSelect} />
 
       <button className="map-fit" onClick={requestFit} title="Tüm varlıkları göster">
         <ExpandIcon size={16} />

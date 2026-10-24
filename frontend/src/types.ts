@@ -225,3 +225,31 @@ export interface Dashboard {
   avgCompletionDays: number | null
   assetsNeverMaintained: number
 }
+
+// ---- İçe / dışa aktarma ----
+export type OsmKind = 'Parks' | 'Roads' | 'StreetLights' | 'PublicBuildings' | 'Infrastructure'
+
+export interface GeoJsonRowResult {
+  index: number
+  name: string | null
+  ok: boolean
+  message: string | null
+}
+
+export interface GeoJsonImportReport {
+  total: number
+  valid: number
+  invalid: number
+  created: number
+  dryRun: boolean
+  problems: GeoJsonRowResult[]
+}
+
+export interface ImportResult {
+  created: number
+  updated: number
+  skipped: number
+  invalid: number
+  byKind: Record<string, number>
+  messages: string[]
+}

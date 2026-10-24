@@ -68,6 +68,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql => npgsql.UseNetTopologySuite()));
 
 builder.Services.AddScoped<NeighborhoodLocator>();
+builder.Services.AddScoped<GeoJsonImporter>();
 
 // OpenStreetMap Overpass API istemcisi. Kullanım politikası gereği tanımlayıcı bir User-Agent gerekir.
 builder.Services.AddHttpClient<OsmImporter>(client =>

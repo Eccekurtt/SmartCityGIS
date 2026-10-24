@@ -6,8 +6,30 @@ namespace SmartCityGis.Api.Controllers;
 
 [ApiController]
 [Route("api/import")]
-public class ImportController(OsmImporter osm) : ControllerBase
+public class ImportController(OsmImporter osm, GeoJsonImporter geoJson) : ControllerBase
 {
+    /// <summary>
+    /// GeoJSON dosyasını (FeatureCollection) içe aktarır. dryRun=true ile yalnızca doğrulama raporu üretir, kaydetmez.
+    /// </summary>
+    [HttpPost("geojson")]
+    [RequestSizeLimit(25 * 1024 * 1024)]
+    public async Task<ActionResult<GeoJsonImportReport>> GeoJson(
+        IFormFile file, [FromQuery] bool dryRun, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new ProblemDetails { Title = "Dosya seçilmedi", Detail = "Bir GeoJSON dosyası yükleyin.", Status = 400 });
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            return await geoJson.ImportAsync(stream, dryRun, ct);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ProblemDetails { Title = "Geçersiz GeoJSON dosyası", Detail = ex.Message, Status = 400 });
+        }
+    }
+
     public class OsmNeighborhoodsRequest
     {
         [Required(ErrorMessage = "İlçe adı zorunludur."), StringLength(60, MinimumLength = 2)]
