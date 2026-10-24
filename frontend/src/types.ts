@@ -14,3 +14,6 @@ export interface Asset {
   description: string | null
   createdAt: string
 }
+
+// POST / PUT isteklerinde gönderilen alanlar (AssetRequest.cs). id ve createdAt sunucuya aittir.
+export type AssetInput = Omit<Asset, 'id' | 'createdAt'>

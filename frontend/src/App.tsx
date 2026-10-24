@@ -1,12 +1,25 @@
-import { useEffect, useState } from 'react'
-import { getAssets } from './api'
-import type { Asset } from './types'
+import { useEffect, useMemo, useState } from 'react'
+import { createAsset, deleteAsset, getAssets, updateAsset } from './api'
+import { AssetForm } from './components/AssetForm'
+import { AssetTable } from './components/AssetTable'
+import { categoryLabels, statusLabels } from './labels'
+import type { Asset, AssetCategory, AssetInput, AssetStatus } from './types'
+
+// null = form kapalı, 'new' = yeni kayıt, Asset = düzenleme
+type FormState = null | 'new' | Asset
 
 function App() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState<AssetCategory | ''>('')
+  const [status, setStatus] = useState<AssetStatus | ''>('')
+
+  const [form, setForm] = useState<FormState>(null)
+
+  // İlk yükleme.
   useEffect(() => {
     const controller = new AbortController()
 
@@ -21,42 +34,103 @@ function App() {
     return () => controller.abort()
   }, [])
 
+  // Ekleme / düzenleme / silme sonrası listeyi sunucudan yeniden çeker.
+  async function reload() {
+    try {
+      setAssets(await getAssets())
+      setError(null)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  // Filtreleme tarayıcıda yapılır; assets / filtreler değişmedikçe yeniden hesaplanmaz.
+  const filtered = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase('tr')
+    return assets.filter(
+      (a) =>
+        (term === '' ||
+          a.name.toLocaleLowerCase('tr').includes(term) ||
+          a.neighborhood.toLocaleLowerCase('tr').includes(term)) &&
+        (category === '' || a.category === category) &&
+        (status === '' || a.status === status),
+    )
+  }, [assets, search, category, status])
+
+  async function handleSubmit(input: AssetInput) {
+    if (form && form !== 'new') {
+      await updateAsset(form.id, input)
+    } else {
+      await createAsset(input)
+    }
+    setForm(null)
+    await reload()
+  }
+
+  async function handleDelete(asset: Asset) {
+    if (!window.confirm(`"${asset.name}" silinsin mi?`)) return
+
+    try {
+      await deleteAsset(asset.id)
+      await reload()
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
   return (
     <main className="container">
-      <h1>SmartCity GIS</h1>
-      <p className="subtitle">Belediye Varlık Yönetim Sistemi</p>
+      <header className="header">
+        <div>
+          <h1>SmartCity GIS</h1>
+          <p className="subtitle">Belediye Varlık Yönetim Sistemi</p>
+        </div>
+        <button className="primary" onClick={() => setForm('new')} disabled={form !== null}>
+          + Yeni Varlık
+        </button>
+      </header>
+
+      {form !== null && (
+        <AssetForm
+          key={form === 'new' ? 'new' : form.id}
+          asset={form === 'new' ? null : form}
+          onSubmit={handleSubmit}
+          onCancel={() => setForm(null)}
+        />
+      )}
+
+      <div className="filters">
+        <input
+          type="search"
+          placeholder="Ad veya mahalle ara..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select value={category} onChange={(e) => setCategory(e.target.value as AssetCategory | '')}>
+          <option value="">Tüm kategoriler</option>
+          {Object.entries(categoryLabels).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <select value={status} onChange={(e) => setStatus(e.target.value as AssetStatus | '')}>
+          <option value="">Tüm durumlar</option>
+          {Object.entries(statusLabels).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <span className="count">
+          {filtered.length} / {assets.length} kayıt
+        </span>
+      </div>
 
       {loading && <p>Yükleniyor...</p>}
-      {error && <p className="error">Veriler alınamadı: {error}</p>}
+      {error && <p className="error">{error}</p>}
 
-      {!loading && !error && (
-        <table>
-          <thead>
-            <tr>
-              <th>Ad</th>
-              <th>Kategori</th>
-              <th>Durum</th>
-              <th>Mahalle</th>
-              <th>Konum</th>
-            </tr>
-          </thead>
-          <tbody>
-            {assets.map((asset) => (
-              <tr key={asset.id}>
-                <td>{asset.name}</td>
-                <td>{asset.category}</td>
-                <td>
-                  <span className={`badge badge-${asset.status}`}>{asset.status}</span>
-                </td>
-                <td>{asset.neighborhood}</td>
-                <td>
-                  {asset.latitude.toFixed(4)}, {asset.longitude.toFixed(4)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      {!loading && <AssetTable assets={filtered} onEdit={setForm} onDelete={handleDelete} />}
     </main>
   )
 }
