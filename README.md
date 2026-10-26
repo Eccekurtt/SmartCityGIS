@@ -4,7 +4,7 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 ![PostGIS](https://img.shields.io/badge/PostgreSQL-18%20%2B%20PostGIS%203.6-336791)
 ![React](https://img.shields.io/badge/React-19%20%2B%20TypeScript-61DAFB)
-![Tests](https://img.shields.io/badge/testler-77%20backend%20%C2%B7%2047%20frontend-2ea44f)
+![Tests](https://img.shields.io/badge/testler-78%20backend%20%C2%B7%2047%20frontend-2ea44f)
 
 Bir belediyenin parklar, yollar, binalar, sokak lambaları ve altyapı varlıklarını **harita üzerinde** kaydettiği,
 sorguladığı, bakımını planladığı ve raporladığı tam yığın (full-stack) bir **CBS (Coğrafi Bilgi Sistemi)** web
@@ -57,7 +57,7 @@ veritabanında, mekânsal sorgularla hesaplanır.
 - Kullanıcı yönetimi, giriş denemelerine hız sınırı, PBKDF2 ile tuzlanmış parola özeti
 
 **Mühendislik**
-- 77 backend + 47 frontend test; entegrasyon testleri gerçek PostGIS konteynerinde (Testcontainers)
+- 78 backend + 47 frontend test; entegrasyon testleri gerçek PostGIS konteynerinde (Testcontainers)
 - GitHub Actions CI, çok aşamalı Docker imajları, `docker compose up` ile tek komut kurulum
 - OpenAPI + Scalar arayüzü, sağlık ucu (`/health`), ProblemDetails ile tutarlı hata yanıtları, Türkçe doğrulama mesajları
 - Açık/koyu tema, mobil uyumlu, kod bölme (sayfa başına yükleme)

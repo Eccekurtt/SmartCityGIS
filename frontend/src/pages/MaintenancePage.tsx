@@ -59,7 +59,7 @@ export function MaintenancePage() {
         </div>
       </div>
 
-      <section className="kpi-grid kpi-5" aria-label="Bakım özeti">
+      <section className="kpi-grid" aria-label="Bakım özeti">
         <article className="card kpi">
           <div className="kpi-label">Planlı</div>
           <div className="kpi-value">{s?.planned ?? '—'}</div>

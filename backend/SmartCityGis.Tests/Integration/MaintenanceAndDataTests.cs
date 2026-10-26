@@ -254,6 +254,37 @@ public class MaintenanceAndDataTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Existing_tokens_stop_working_when_the_user_is_deactivated_or_the_role_changes()
+    {
+        var admin = await factory.ClientFor("admin");
+        var userName = "oturum." + Guid.NewGuid().ToString("N")[..8];
+        var created = await (await admin.PostAsJsonAsync("/api/users",
+            new { userName, displayName = "Oturum Testi", role = "Operator", password = "Gecerli123" })).JsonAsync();
+        var id = created.GetProperty("id").GetInt32();
+
+        async Task<HttpClient> LoginAsync()
+        {
+            var client = factory.CreateClient();
+            var login = await (await client.PostAsJsonAsync("/api/auth/login", new { userName, password = "Gecerli123" })).JsonAsync();
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", login.GetProperty("token").GetString());
+            return client;
+        }
+
+        // 1) Rol değişince eski token (Operator) artık geçerli değil; yeni giriş yeni rolü taşır.
+        var oldToken = await LoginAsync();
+        Assert.Equal(HttpStatusCode.OK, (await oldToken.GetAsync("/api/assets?pageSize=1")).StatusCode);
+        await admin.PutAsJsonAsync($"/api/users/{id}", new { displayName = "Oturum Testi", role = "Viewer", isActive = true });
+        Assert.Equal(HttpStatusCode.Unauthorized, (await oldToken.GetAsync("/api/assets?pageSize=1")).StatusCode);
+        var viewerToken = await LoginAsync();
+        Assert.Equal(HttpStatusCode.OK, (await viewerToken.GetAsync("/api/assets?pageSize=1")).StatusCode);
+
+        // 2) Hesap devre dışı bırakılınca çalışan oturum anında kesilir (8 saatlik token süresi beklenmez).
+        await admin.PutAsJsonAsync($"/api/users/{id}", new { displayName = "Oturum Testi", role = "Viewer", isActive = false });
+        Assert.Equal(HttpStatusCode.Unauthorized, (await viewerToken.GetAsync("/api/assets?pageSize=1")).StatusCode);
+    }
+
+    [Fact]
     public async Task New_user_can_log_in_and_a_deactivated_user_cannot()
     {
         var admin = await factory.ClientFor("admin");

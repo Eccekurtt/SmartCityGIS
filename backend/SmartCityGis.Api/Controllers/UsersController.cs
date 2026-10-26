@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SmartCityGis.Api.Data;
 using SmartCityGis.Api.Models;
 using SmartCityGis.Api.Security;
@@ -12,7 +13,7 @@ namespace SmartCityGis.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Policy = Policies.AdminOnly)]
-public class UsersController(AppDbContext db, IPasswordHasher<AppUser> hasher) : ControllerBase
+public class UsersController(AppDbContext db, IPasswordHasher<AppUser> hasher, IMemoryCache cache) : ControllerBase
 {
     public record UserDto(
         int Id, string UserName, string DisplayName, UserRole Role, bool IsActive,
@@ -98,6 +99,7 @@ public class UsersController(AppDbContext db, IPasswordHasher<AppUser> hasher) :
         user.Role = request.Role;
         user.IsActive = request.IsActive;
         await db.SaveChangesAsync(ct);
+        cache.Remove(UserSessionCache.Key(id)); // devre dışı bırakma / rol değişikliği hemen etkili olsun
 
         return ToDto(user);
     }

@@ -194,6 +194,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
           {data.upcoming.length === 0 ? (
             <p className="empty-note">Planlı bakım işi yok.</p>
           ) : (
+            <div className="table-scroll">
             <table className="mini-table">
               <thead>
                 <tr>
@@ -222,6 +223,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
           <div className="card-footer">
             <Link to="/bakim">Tüm bakım işlerine git →</Link>

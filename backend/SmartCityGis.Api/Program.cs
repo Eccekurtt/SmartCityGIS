@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using NetTopologySuite.IO.Converters;
 using SmartCityGis.Api.Data;
@@ -89,6 +90,7 @@ if (jwt.Key.Length < 32)
 }
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.Section));
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 
@@ -109,6 +111,32 @@ builder.Services
             ClockSkew = TimeSpan.FromMinutes(1),
             NameClaimType = "name",
             RoleClaimType = "role"
+        };
+
+        // İmza ve süre doğru olsa bile kullanıcı bu arada devre dışı bırakıldıysa veya rolü değiştiyse
+        // token geçersiz sayılır; aksi halde yetki, token süresi (8 saat) dolana kadar eski haliyle sürerdi.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userId = context.Principal.Id();
+                var tokenRole = context.Principal?.FindFirst("role")?.Value;
+
+                var cache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+                var state = await cache.GetOrCreateAsync(UserSessionCache.Key(userId), async entry =>
+                {
+                    // Kısa süreli önbellek: her istekte veritabanına gitmemek için. Kullanıcı güncellenince temizlenir.
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
+                    var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                    return await db.Users.AsNoTracking()
+                        .Where(u => u.Id == userId)
+                        .Select(u => new UserSessionState(u.IsActive, u.Role.ToString()))
+                        .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+                });
+
+                if (state is null || !state.IsActive || state.Role != tokenRole)
+                    context.Fail("Oturum artık geçerli değil.");
+            }
         };
     });
 
@@ -154,6 +182,15 @@ builder.Services.AddHttpClient<OsmImporter>(client =>
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("veritabani");
 
 var app = builder.Build();
+
+// Üretim benzeri ortamda herkesçe bilinen demo değerleri kullanılıyorsa açıkça uyar.
+if (!app.Environment.IsDevelopment())
+{
+    if (jwt.Key.StartsWith("yalnizca-yerel-demo") || jwt.Key.StartsWith("gelistirme-ortami"))
+        app.Logger.LogWarning("Jwt:Key demo/geliştirme değerinde! Token'lar sahtelenebilir. Gerçek bir sunucuda Jwt__Key değiştirin.");
+    if (app.Configuration.GetValue("Seed:DemoUsers", false))
+        app.Logger.LogWarning("Demo kullanıcıları (admin/operator/izleyici) etkin ve parolaları herkesçe bilinir. Gerçek bir sunucuda Seed__DemoUsers=false yapın.");
+}
 
 // ---------------------------------------------------------------- Başlangıç: migration ve tohum veri
 

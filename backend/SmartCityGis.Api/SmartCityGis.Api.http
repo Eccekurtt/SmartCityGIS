@@ -1,6 +1,44 @@
-@SmartCityGis.Api_HostAddress = http://localhost:5046
+# VS Code (REST Client) ve Visual Studio ile çalışır. Önce API'yi çalıştırın: dotnet run --launch-profile http
+@host = http://localhost:5046
 
-GET {{SmartCityGis.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1) Giriş: dönen "token" değerini aşağıdaki @token satırına yapıştırın
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "userName": "admin", "password": "Admin123!" }
 
 ###
+@token = BURAYA_TOKEN
+
+### Sağlık denetimi (giriş gerekmez)
+GET {{host}}/health
+
+### Varlık listesi: filtre, arama, sayfalama
+GET {{host}}/api/assets?search=park&category=Park&pageSize=5
+Authorization: Bearer {{token}}
+
+### Kızılay çevresinde 1 km içindeki varlıklar (metre cinsinden)
+GET {{host}}/api/assets/nearby?lat=39.9208&lon=32.8541&radius=1000
+Authorization: Bearer {{token}}
+
+### GeoJSON (QGIS'e eklenebilir)
+GET {{host}}/api/assets/geojson?category=Road
+Authorization: Bearer {{token}}
+
+### Alan (Polygon) varlığı ekle: geometri GeoJSON, sıra [boylam, enlem]
+POST {{host}}/api/assets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Deneme Parkı",
+  "category": "Park",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[[32.80, 39.90], [32.81, 39.90], [32.81, 39.91], [32.80, 39.91], [32.80, 39.90]]]
+  }
+}
+
+### Yönetim paneli verisi
+GET {{host}}/api/reports/dashboard
+Authorization: Bearer {{token}}
