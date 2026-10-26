@@ -342,7 +342,7 @@ SmartCityGIS/
 │   └── SmartCityGis.Tests/      Birim + Testcontainers entegrasyon testleri
 ├── frontend/
 │   └── src/                     api, hooks, components, pages, lib, context
-├── docs/                        Mimari notları, mülakat rehberi, ekran görüntüleri
+├── docs/screenshots/            README ekran görüntüleri
 ├── docker-compose.yml           db + api + web
 └── .github/workflows/ci.yml
 ```
